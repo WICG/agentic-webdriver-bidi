@@ -6,9 +6,10 @@ Status: CG-DRAFT
 Group: WICG
 Repository: WICG/agentic-webdriver-bidi
 URL: http://example.com/url-this-spec-will-live-at
-Editor: Alex Rudenko, Google https://google.com, alexrudenko@google.com
+Editor: Alex Rudenko, Google https://www.google.com, w3cid 141088
+Editor: Maksim Sadym, Google https://www.google.com, w3cid 128970
 !Tests: <a href=https://github.com/w3c/web-platform-tests/tree/master/agentic-webdriver-bidi>web-platform-tests agentic-webdriver-bidi/</a> (<a href=https://github.com/w3c/web-platform-tests/labels/agentic-webdriver-bidi>ongoing work</a>)
-Abstract: A short description of your spec, one or two sentences.
+Abstract: Extensions to WebDriver BiDi for agentic use cases.
 </pre>
 
 Introduction {#intro}
