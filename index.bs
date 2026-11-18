@@ -1,0 +1,17 @@
+<pre class='metadata'>
+Title: Agentic extensions for WebDriver BiDi
+Shortname: agentic-webdriver-bidi
+Level: 1
+Status: CG-DRAFT
+Group: WICG
+Repository: WICG/agentic-webdriver-bidi
+URL: http://example.com/url-this-spec-will-live-at
+Editor: Alex Rudenko, Google https://google.com, alexrudenko@google.com
+!Tests: <a href=https://github.com/w3c/web-platform-tests/tree/master/agentic-webdriver-bidi>web-platform-tests agentic-webdriver-bidi/</a> (<a href=https://github.com/w3c/web-platform-tests/labels/agentic-webdriver-bidi>ongoing work</a>)
+Abstract: A short description of your spec, one or two sentences.
+</pre>
+
+Introduction {#intro}
+=====================
+
+See https://github.com/tabatkins/bikeshed to get started.
