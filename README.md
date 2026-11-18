@@ -39,7 +39,7 @@ AI agents also need browser automation. Many agents use low-level protocols or t
 
 We propose extensions to WebDriver BiDi for agentic use cases that include agentic browsing. A WebDriver BiDi session represents one long-running agentic activity in the browser. Permissions are properties of that session. The user agent enforces the permissions. The user keeps supervision and control of the agent.
 
-A client starts a restricted session with `sessionType: "restricted"` in `session.new`. A restricted session starts with no permissions. The agent requests all permissions with `session.setAcl`.
+A client starts a restricted session with `sessionType: "restricted"` in `session.new`. A restricted session starts with no permissions beyond any user-agent defaults. The agent requests permissions and learns the effective ACL with `session.setAcl`.
 
 An access control list (ACL) contains the permissions of a restricted session. The ACL contains three types of permissions:
 
