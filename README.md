@@ -130,7 +130,7 @@ The ACL does not control these commands and events. They are always available in
 
 A client includes `sessionType: "restricted"` in the capabilities of `session.new` to start a restricted session. The result confirms the session type.
 
-`session.new` does not accept an ACL. A restricted session starts with an empty ACL. The agent must send [`session.setAcl`](#sessionsetacl) before it can use other commands or receive other events.
+`session.new` does not accept an ACL. A restricted session starts with an empty ACL (or only user-agent-default permissions). The agent sends [`session.setAcl`](#sessionsetacl) to request permissions and receive the effective ACL before using other commands or receiving other events.
 
 Request:
 
@@ -174,7 +174,7 @@ The `acl` parameter contains the full ACL that the agent requests for the sessio
 
 The result contains two fields:
 
-- `acl`: the ACL of the session after the change. It can be smaller than the requested ACL.
+- `acl`: the effective ACL of the session after the change. It can be smaller than the requested ACL (if permissions were denied) or larger (if the user agent grants default permissions). User-agent-default permissions remain in the effective ACL even if omitted from a subsequent `session.setAcl` call.
 - `denied`: the permissions that the user agent denied. The user agent omits this field if it granted the full request.
 
 The `denied` field contains two fields:
@@ -357,7 +357,7 @@ sequenceDiagram
     participant User
 
     Agent->>UA: session.new (sessionType: restricted)
-    UA-->>Agent: restricted session with an empty acl
+    UA-->>Agent: restricted session (empty or default acl)
     Agent->>UA: session.setAcl (first acl, reason)
     UA->>User: permission prompt (optional)
     User-->>UA: decision
@@ -382,7 +382,7 @@ sequenceDiagram
 
 | Use case | Mechanism |
 | :--- | :--- |
-| 1. Only allowed operations | A restricted session starts with an empty ACL. The user agent enforces the `origins`, `commands`, and `events` lists of the ACL. |
+| 1. Only allowed operations | A restricted session allows only operations in its effective ACL (initially empty or user-agent defaults). The user agent enforces the `origins`, `commands`, and `events` lists of the ACL. |
 | 2. User interrupts the session | `session.changed` with `paused: true`. |
 | 3. User revokes permissions | `session.changed` with the updated `acl`. The connection stays open. |
 | 4. Agent requests more capabilities | `session.setAcl` with a `reason`. The result contains the granted and denied permissions, and an optional reason for the denial. |
@@ -417,11 +417,11 @@ Most tasks operate on one tab or a small number of tabs. The `perNavigable` part
 1. **Session type.** `restricted` is a working name. Is `sessionType` a capability or a top-level parameter of `session.new`? Does a restricted session start with an empty ACL, or can the user agent supply a default ACL?
 2. **Name of the ACL.** `acl` is a working name.
 3. **Shortcut for full access.** The ACL can support a short form that requests all origins, all commands, or all events.
-4. **Allowed set.** Which commands and events can an ACL of a restricted session contain? Should this be up to the user agent? Should we have a mechanism to advertise possible commands and events? Recommendation: setAcl returns current effective ACL that could be larger in scope that what the agent requests. This is a mechanism for the agent to know what can be done by default in the user agent.
-5. **Entries for `perNavigable` only.** Which commands and events are valid only in a `perNavigable` entry? Recommendation: let use agent decide.
-6. **Subscriptions.** How do the `events` list and `session.subscribe` interact? Recommendation: adding an event to ACL subscribes to the event. removing an event from ACL unsubscribes.
+4. **Allowed set.** Which commands and events can an ACL of a restricted session contain? Should this be up to the user agent? Should we have a mechanism to advertise possible commands and events? Recommendation: `session.setAcl` returns the current effective ACL, which can be larger in scope than what the agent requests, so the agent can learn what is allowed by default in the user agent.
+5. **Entries for `perNavigable` only.** Which commands and events are valid only in a `perNavigable` entry? Recommendation: let the user agent decide.
+6. **Subscriptions.** How do the `events` list and `session.subscribe` interact? Recommendation: adding an event to the ACL subscribes to the event. Removing an event from the ACL unsubscribes.
 7. **Errors.** Which error code does a command return when the ACL denies it, or when the session is in the paused state?
-8. **Prompt frequency.** Which permissions can a user agent grant without a user prompt? We think this should be left to the user agent discretion.
+8. **Prompt frequency.** Which permissions can a user agent grant without a user prompt? We think this should be left to the user agent's discretion.
 9. **Denial reason format.** Is one free-text `reason` sufficient? Alternatives are a machine-readable code, or one reason for each denied entry.
 
 ## Roadmap
@@ -451,7 +451,7 @@ The user agent could manage all permissions in its own UI, with no protocol surf
 
 ## Security and privacy considerations
 
-- **Least privilege.** A restricted session starts with no permissions. It can use only the origins, commands, and events in its ACL. Standard WebDriver BiDi gives full access to the browser.
+- **Least privilege.** A restricted session starts with no permissions beyond user-agent defaults. It can use only the origins, commands, and events in its effective ACL. Standard WebDriver BiDi gives full access to the browser.
 - **Enforcement in the user agent.** The user agent enforces the ACL. The agent and its client library are not trusted to do this.
 - **Origin gating.** The agent cannot send commands to, or receive events from, documents of origins that the ACL does not contain.
 - **User control.** The user can pause the session or revoke permissions at any time. The effect is immediate.
