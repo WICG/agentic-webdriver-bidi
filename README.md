@@ -22,6 +22,7 @@
   - [`session.new`](#sessionnew)
   - [`session.setAcl`](#sessionsetacl)
   - [`session.changed`](#sessionchanged)
+  - [Commands and events in a restricted session](#commands-and-events-in-a-restricted-session)
   - [Actuation UI](#actuation-ui)
 - [Example: a full session](#example-a-full-session)
 - [How this solution addresses the use cases](#how-this-solution-addresses-the-use-cases)
@@ -100,6 +101,8 @@ Each part contains three lists:
 - `origins`: the origins that the agent can access.
 - `commands`: the names of the commands that the agent can send.
 - `events`: the names of the events that the agent can receive.
+
+The `commands` and `events` lists can contain only the names in [Commands and events in a restricted session](#commands-and-events-in-a-restricted-session).
 
 ```js
 {
@@ -353,6 +356,53 @@ In this example, the user pauses the session and revokes the permissions for nav
 }
 ```
 
+### Commands and events in a restricted session
+
+A restricted session supports only the commands and events in this section. The `commands` and `events` lists of an ACL can contain only these names. The user agent rejects all other names.
+
+Most of these commands and events are existing WebDriver BiDi commands and events. This proposal adds `session.setAcl` and `session.changed`. It also extends some existing commands, as the tables show.
+
+Session commands and events:
+
+| Name | Type | Status | Description |
+| :--- | :--- | :--- | :--- |
+| [`session.new`](#sessionnew) | Command | Existing, extended | Starts a restricted session if the capabilities contain `sessionType: "restricted"`. |
+| [`session.setAcl`](#sessionsetacl) | Command | New | Requests or retracts permissions. The parameters are `acl` and `reason`. The result contains the granted and denied permissions. |
+| [`session.changed`](#sessionchanged) | Event | New | Tells the agent that the user or the user agent paused, resumed, or reconfigured the session. The fields include `acl` and `paused`. |
+
+Commands and events that observe navigables:
+
+| Name | Type | Status | Description |
+| :--- | :--- | :--- | :--- |
+| `browsingContext.getTree` | Command | Existing | Returns a sanitized overview of the navigables that the agent can access. The ACL applies to data that the overview does not need. |
+| `browsingContext.captureScreenshot` | Command | Existing | Returns a screenshot of a navigable. The user agent redacts the screenshot in accordance with the origin permissions. |
+| `browsingContext.locateNodes` | Command | Existing, extended | Finds DOM elements by locator. The extension adds a locator for an `x`, `y` position and returns serialized accessibility data. |
+| `script.evaluate` | Command | Existing | Evaluates script in a sandbox realm of a navigable. The user agent awaits promises and returns a JSON-serialized result. |
+| `log.entryAdded` | Event | Existing | Contains a console message from an actuated navigable. |
+| `browsingContext.userPromptOpened` | Event | Existing | Tells the agent that an actuated navigable opened a JavaScript dialog. |
+| `browsingContext.navigationCommitted` | Event | Existing | Tells the agent that a navigable navigated. The event contains the new URL. |
+
+Commands that change navigables:
+
+| Name | Type | Status | Description |
+| :--- | :--- | :--- | :--- |
+| `browsingContext.create` | Command | Existing | Creates a navigable. This command is not an actuation command, because the agent cannot actuate the new navigable without explicit permission. |
+| `browsingContext.close` | Command | Existing | Closes a navigable. |
+| `browsingContext.navigate` | Command | Existing | Navigates a navigable. |
+| `browsingContext.reload` | Command | Existing | Reloads a navigable. |
+| `browsingContext.traverseHistory` | Command | Existing | Moves a navigable backward or forward in its session history. |
+| `browsingContext.handleUserPrompt` | Command | Existing | Accepts or dismisses a JavaScript dialog in a navigable. |
+| `input.performActions` | Command | Existing, extension planned | Sends trusted keyboard, pointer, and wheel actions to a navigable. |
+| `input.releaseActions` | Command | Existing | Releases all keys and pointer buttons that are in the pressed state in a navigable. |
+
+`input.performActions` does not tell the agent the result of an action. The agent needs this feedback:
+
+- The position of a click and the element that the click hit.
+- The distance of a scroll and the position of the viewport on the page after the scroll.
+- The text that an input field received.
+
+We must extend `input.performActions` to send this feedback as an event, or add new commands that return this data.
+
 ### Actuation UI
 
 User agents are encouraged to show dedicated UI while an agent actuates a navigable ([#6](https://github.com/WICG/agentic-webdriver-bidi/issues/6)). For example, the user agent can:
@@ -372,14 +422,12 @@ Actuation commands are valid only in a `perNavigable` entry. If an agent request
 
 The actuation commands include:
 
-- `browsingContext.activate`
 - `browsingContext.handleUserPrompt`
 - `browsingContext.navigate`
 - `browsingContext.reload`
 - `browsingContext.traverseHistory`
 - `input.performActions`
 - `input.releaseActions`
-- `input.setFiles`
 
 Script evaluation (`script.evaluate`, `script.callFunction`) can change the page, but agents also use it to read the page. See the [open questions](#open-questions).
 
