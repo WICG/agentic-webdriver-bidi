@@ -26,6 +26,9 @@
 - [Example: a full session](#example-a-full-session)
 - [How this solution addresses the use cases](#how-this-solution-addresses-the-use-cases)
 - [Detailed design discussion](#detailed-design-discussion)
+- [Transports](#transports)
+  - [`browser.driver.connect()`](#browserdriverconnect)
+  - [`browser.driver.tabIdToNavigableId(tabId)`](#browserdrivertabidtonavigableidtabid)
 - [Roadmap](#roadmap)
 - [Considered alternatives](#considered-alternatives)
 - [Security and privacy considerations](#security-and-privacy-considerations)
@@ -505,6 +508,129 @@ The cost is that the actuation UI depends on the agent: the agent must retract t
 10. **List of actuation commands.** Which commands are actuation commands? Specifically, are `script.evaluate` and `script.callFunction` actuation commands? Script can click elements and change the page. But agents also use script to read the page. One option is to let the user agent decide. Another option is a read-only mode for script in a sandbox realm.
 11. **Agents that do not retract permissions.** If an agent does not retract its actuation commands, the actuation UI stays visible. Should the protocol recommend that the user agent revokes actuation commands after a period of inactivity?
 
+## Transports
+
+WebDriver BiDi defines one transport: WebSocket. A WebSocket transport needs a network endpoint in the browser. A browser extension cannot use that endpoint easily, and an open port increases the attack surface of the browser.
+
+[w3c/webdriver-bidi#996](https://github.com/w3c/webdriver-bidi/pull/996) refactors the WebDriver BiDi specification to allow non-network transports. It defines an abstract message transport and an abstract connection. Each connection has steps to send a message and steps to close the connection. The WebSocket transport becomes one implementation of the message transport. The message processing algorithms use the abstract connection only.
+
+We propose a second implementation of the message transport: an extension transport. A browser extension uses a WebExtensions API to open a connection to the browser in which it runs. The connection does not use the network.
+
+The intended home for the extension transport is the [WebExtensions specification](https://w3c.github.io/webextensions/specification/).
+
+### `browser.driver.connect()`
+
+`browser.driver.connect()` creates a new WebDriver BiDi transport and a new connection. The returned object sends and receives WebDriver BiDi messages for that connection.
+
+`connect()` does not create a session. The extension sends `session.new` on the connection to create a session. The extension sends `session.end` to end the session.
+
+The extension transport supports restricted sessions only. An extension cannot create a standard session on this transport, because a standard session gives full access to the browser.
+
+```ts
+browser.driver = {
+  // Creates a new WebDriver BiDi transport and connection.
+  connect(): Promise<WebDriverBiDiTransport>;
+
+  // Resolves a tab id to the id of the top-level navigable in the tab.
+  tabIdToNavigableId(tabId: number): Promise<string>;
+}
+
+interface WebDriverBiDiTransport {
+  // The browser calls each listener one time for each incoming message.
+  readonly onMessage: {
+    // Adds a message listener.
+    addListener(callback: (message: string) => void): void;
+
+    // Removes a message listener that was added before.
+    removeListener(callback: (message: string) => void): void;
+  };
+
+  // Sends a message, for example a command.
+  sendMessage(message: string): Promise<void>;
+
+  // Closes the connection. The session of the connection ends.
+  close(): Promise<void>;
+}
+```
+
+The members of `WebDriverBiDiTransport` are:
+
+- `onMessage`: an event with `addListener` and `removeListener`. It has the same pattern as [`chrome.debugger.onEvent`](https://developer.chrome.com/docs/extensions/reference/api/debugger#event-onEvent). The browser calls each listener for each incoming message. A message is a command response, an error response, or an event.
+- `sendMessage(message)`: sends one message to the browser. The promise resolves when the browser accepts the message. The promise does not contain the command response. The response arrives through `onMessage`.
+- `close()`: closes the connection. The WebDriver BiDi specification ends the session when its connection closes. Thus `close()` also ends the session.
+
+Each `message` is a string that contains one serialized WebDriver BiDi message. The format is the same as for the WebSocket transport. Thus a client library can use the same code for the two transports.
+
+The API maps to the abstract connection of [w3c/webdriver-bidi#996](https://github.com/w3c/webdriver-bidi/pull/996) as follows:
+
+| Abstract connection | Extension transport |
+| :--- | :--- |
+| Establish a connection | `browser.driver.connect()` |
+| The transport receives a message from the local end | `sendMessage(message)` |
+| Send a connection message to the local end | The browser calls the `onMessage` listeners |
+| Close the connection | `close()` |
+
+### `browser.driver.tabIdToNavigableId(tabId)`
+
+Extension APIs identify a tab with a tab id. WebDriver BiDi identifies a navigable with a navigable id. `browser.driver.tabIdToNavigableId(tabId)` resolves the tab id to the id of the top-level navigable in that tab. The method returns a promise that resolves with the navigable id.
+
+```ts
+// Resolves a tab id to the id of the top-level navigable in the tab.
+browser.driver.tabIdToNavigableId(tabId: number): Promise<string>;
+```
+
+The extension can use the navigable id in commands, and as a key in the `perNavigable` part of the ACL.
+
+### Example: an extension starts a restricted session
+
+In this example, the user clicks the extension action on a tab. The extension opens a connection and starts a restricted session. Then it requests permission to read the top-level navigable in that tab.
+
+```js
+browser.action.onClicked.addListener(async (tab) => {
+  const transport = await browser.driver.connect();
+
+  transport.onMessage.addListener((message) => {
+    const data = JSON.parse(message);
+    // Process command responses and events.
+  });
+
+  await transport.sendMessage(JSON.stringify({
+    id: 1,
+    method: "session.new",
+    params: {
+      capabilities: {alwaysMatch: {sessionType: "restricted"}}
+    }
+  }));
+
+  const navigableId = await browser.driver.tabIdToNavigableId(tab.id);
+
+  await transport.sendMessage(JSON.stringify({
+    id: 2,
+    method: "session.setAcl",
+    params: {
+      acl: {
+        perNavigable: {
+          [navigableId]: {
+            origins: [new URL(tab.url).origin],
+            commands: ["browsingContext.captureScreenshot"],
+            events: []
+          }
+        }
+      },
+      reason: "Read the tab that the user selected."
+    }
+  }));
+});
+```
+
+> [!NOTE]
+> The transport is a low-level interface. An extension can wrap the transport in a promise-based interface that is easier to use. For example, a `send(method, params)` function can return a promise that resolves with the response that has the same `id`.
+
+### Open questions for transports
+
+1. **Extension permission.** Which manifest permission gives access to `browser.driver`?
+2. **Reverse mapping.** Is a method necessary to resolve a navigable id to a tab id?
+
 ## Roadmap
 
 We plan to explore these items after the permission model. The order does not show priority.
@@ -512,7 +638,6 @@ We plan to explore these items after the permission model. The order does not sh
 - **Accessibility tree.** Explore the accessibility tree as a structured text snapshot of page content for agents.
 - **CSP for sandbox realms.** Explore a Content Security Policy (CSP) that applies to the sandbox realms in which the agent evaluates script.
 - **`browsingContext.locateNodes` by coordinates.** Add a locator that finds nodes at an `x`, `y` position.
-- **Extension and non-WebSocket transports.** Let a browser extension use the protocol, and support transports other than WebSocket.
 
 ## Considered alternatives
 
