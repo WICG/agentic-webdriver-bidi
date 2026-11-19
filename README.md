@@ -487,7 +487,7 @@ The user agent must know when to show actuation UI. If the user agent finds this
 
 The per-navigable ACL does not have these problems. The agent requests actuation commands for a navigable before the first action, and retracts them when the task is complete. The actuation continues across more than one `session.setAcl` call, and across commands that are not actuation commands. Thus the user agent can show the UI before the first action and keep it until the agent retracts the permissions.
 
-This design does not add commands to the protocol. The ACL already contains the necessary information. See [explicit actuation commands](#explicit-actuation-commands) for the alternative.
+This design does not add commands to the protocol. The ACL already contains the necessary information.
 
 The cost is that the actuation UI depends on the agent: the agent must retract the actuation commands after use. The protocol cannot enforce this, but the user agent can revoke permissions at any time.
 
@@ -529,12 +529,6 @@ An earlier version of this document accepted an ACL as a capability in `session.
 The [original proposal](https://github.com/WICG/proposals/issues/320) also used a session type, `sessionType: "agent"`, and the session started with lifecycle commands only. That proposal did not specify how the agent gets more permissions. This document adds `session.setAcl` and `session.changed` for that purpose.
 
 The user agent could manage all permissions in its own UI, with no protocol surface. Then the agent cannot request permissions, give a reason, or learn about a denial. The behavior is also different in each browser.
-
-### Explicit actuation commands
-
-An earlier version of this document added `browsingContext.startActuation` and `browsingContext.stopActuation`. The agent sent these commands before and after it actuated a navigable. In a restricted session, actuation commands failed outside of these two commands. The user agent showed actuation UI between them.
-
-We replaced this design because the per-navigable ACL gives the same information. Both designs continue across more than one `session.setAcl` call and across a mix of commands. The ACL design does not add commands, and the ACL stays the one source of information about what the agent can do in a navigable.
 
 ## Security and privacy considerations
 
