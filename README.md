@@ -22,6 +22,10 @@
   - [`session.new`](#sessionnew)
   - [`session.setAcl`](#sessionsetacl)
   - [`session.changed`](#sessionchanged)
+  - [Actuation blocks](#actuation-blocks)
+  - [`browsingContext.startActuation`](#browsingcontextstartactuation)
+  - [`browsingContext.stopActuation`](#browsingcontextstopactuation)
+  - [`browsingContext.actuationStopped`](#browsingcontextactuationstopped)
 - [Example: a full session](#example-a-full-session)
 - [How this solution addresses the use cases](#how-this-solution-addresses-the-use-cases)
 - [Detailed design discussion](#detailed-design-discussion)
@@ -47,6 +51,8 @@ An access control list (ACL) contains the permissions of a restricted session. T
 - **Commands**: the WebDriver BiDi commands that the agent can send.
 - **Events**: the WebDriver BiDi events that the agent can receive.
 
+The agent also tells the user agent when it starts and stops to actuate a navigable. It sends `browsingContext.startActuation` and `browsingContext.stopActuation`. Between these two commands, the user agent shows that the agent controls the navigable, and the user can stop the agent. In a restricted session, actuation commands fail outside of such an actuation block.
+
 > [!NOTE]
 > This proposal is in incubation. All names and data shapes in this document are illustrative and can change. The goal is to move the final features into the WebDriver BiDi specification.
 
@@ -69,6 +75,8 @@ An access control list (ACL) contains the permissions of a restricted session. T
 2. The user interrupts an active session. The agent receives a notification and adapts.
 3. The user revokes a permission or pauses the session. The session loses the related capabilities immediately, but the connection stays open.
 4. The agent requests more capabilities during a session. The user or the user agent makes the decision, and the agent receives the result.
+5. The user sees which navigable the agent actuates, and when. The agent can observe a navigable without actuation UI, for example to read the page in a tab that the user opened.
+6. The user stops an active actuation with one action, for example a stop button. The agent receives a notification.
 
 The [original proposal](https://github.com/WICG/proposals/issues/320) contains more use cases: structured page content, feedback on input, and access to user profile data. They are in scope. See the [roadmap](#roadmap).
 
@@ -80,6 +88,8 @@ The [original proposal](https://github.com/WICG/proposals/issues/320) contains m
 - **Agent**: the WebDriver BiDi client controlled by an AI system.
 - **Restricted session**: a WebDriver BiDi session with `sessionType: "restricted"`. The user agent allows only the operations in the ACL of the session.
 - **Access control list (ACL)**: a dictionary that contains the allowed origins, commands, and events for a restricted session.
+- **Actuation command**: a command that changes the state of a navigable or acts for the user, for example a click, a key press, or a navigation. See [actuation blocks](#actuation-blocks).
+- **Actuation block**: the period between a successful `browsingContext.startActuation` and the end of the actuation for the same navigable.
 
 ### The access control list
 
@@ -125,6 +135,9 @@ The ACL does not control these commands and events. They are always available in
 - `session.end`
 - `session.setAcl`
 - `session.changed`
+- `browsingContext.startActuation`
+- `browsingContext.stopActuation`
+- `browsingContext.actuationStopped`
 
 ### `session.new`
 
@@ -346,6 +359,147 @@ In this example, the user pauses the session and revokes the permissions for nav
 }
 ```
 
+### Actuation blocks
+
+If the user agent shows actuation UI based on the commands that it receives, the UI is not reliable. The user agent cannot know when a sequence of actions starts or ends, so the UI can flicker or show too late. Thus the agent tells the user agent explicitly when it starts and stops to actuate a navigable ([#6](https://github.com/WICG/agentic-webdriver-bidi/issues/6)):
+
+1. The agent sends `browsingContext.startActuation` for a navigable. This starts an actuation block.
+2. The agent sends actuation commands to that navigable.
+3. The agent sends `browsingContext.stopActuation`. This ends the actuation block.
+
+During an actuation block, user agents are encouraged to:
+
+- Show dedicated UI that tells the user that the agent actuates the navigable.
+- Show other UI that helps the user follow the agent, for example click visualization.
+- Show a control, for example a stop button, that lets the user end the actuation block.
+
+The user can end an actuation block at any time. The user agent then sends [`browsingContext.actuationStopped`](#browsingcontextactuationstopped) to the agent.
+
+In a restricted session, an actuation command fails if its target navigable is not in an actuation block. Other commands, for example `browsingContext.getTree` and `browsingContext.captureScreenshot`, do not need an actuation block. Thus the agent can observe a navigable without actuation UI. An actuation block does not give permissions. Each actuation command must also be in the ACL for the target navigable and origin.
+
+The actuation commands include:
+
+- `browsingContext.activate`
+- `browsingContext.handleUserPrompt`
+- `browsingContext.navigate`
+- `browsingContext.reload`
+- `browsingContext.traverseHistory`
+- `input.performActions`
+- `input.releaseActions`
+- `input.setFiles`
+
+Script evaluation (`script.evaluate`, `script.callFunction`) can change the page, but agents also use it to read the page. See the [open questions](#open-questions).
+
+An actuation block is for one navigable. A session can have actuation blocks for more than one navigable at the same time. An actuation block continues across navigations in its navigable. An actuation block ends when one of these occurs:
+
+- The agent sends `browsingContext.stopActuation`.
+- The user or the user agent stops the actuation.
+- The navigable closes.
+- The session ends.
+
+### `browsingContext.startActuation`
+
+The agent sends this command to start an actuation block for a navigable.
+
+Parameters:
+
+- `context`: the ID of the navigable.
+- `reason`: an optional text that tells the user what the agent will do. The user agent can show it in the actuation UI.
+
+The command fails in these conditions:
+
+- The navigable is already in an actuation block.
+- The ACL does not contain the origin of the active document of the navigable.
+- The user or the user agent does not allow the actuation. For example, the user agent prompts the user, and the user declines.
+
+`startActuation` does not activate the navigable or move it to the front. If necessary, the agent sends `browsingContext.activate` in the actuation block.
+
+Request:
+
+```json
+{
+  "id": 4,
+  "method": "browsingContext.startActuation",
+  "params": {
+    "context": "A1B2C3",
+    "reason": "Add the selected item to the cart."
+  }
+}
+```
+
+Response:
+
+```json
+{
+  "id": 4,
+  "type": "success",
+  "result": {}
+}
+```
+
+### `browsingContext.stopActuation`
+
+The agent sends this command to end the actuation block for a navigable. The user agent removes the actuation UI.
+
+Parameters:
+
+- `context`: the ID of the navigable.
+
+The command fails if the navigable is not in an actuation block. The user agent does not send `browsingContext.actuationStopped` for an actuation block that the agent ended.
+
+Request:
+
+```json
+{
+  "id": 7,
+  "method": "browsingContext.stopActuation",
+  "params": {
+    "context": "A1B2C3"
+  }
+}
+```
+
+Response:
+
+```json
+{
+  "id": 7,
+  "type": "success",
+  "result": {}
+}
+```
+
+### `browsingContext.actuationStopped`
+
+The user agent sends this event when an actuation block ends for a cause other than `browsingContext.stopActuation`.
+
+The event has these fields:
+
+- `context`: the ID of the navigable.
+- `cause`: one of these values:
+  - `"user"`: the user stopped the actuation, for example with the stop button.
+  - `"userAgent"`: the user agent stopped the actuation, for example because of a policy.
+  - `"closed"`: the navigable closed.
+- `reason`: an optional text from the user agent that explains the stop.
+
+After this event, actuation commands to the navigable fail. To continue, the agent must send `browsingContext.startActuation` again. The user agent can decline it. A stop does not change the ACL and does not pause the session. If the user agent also changes the ACL or pauses the session, it sends [`session.changed`](#sessionchanged).
+
+The user agent always sends `browsingContext.actuationStopped` to a restricted session. The ACL does not control this event.
+
+In this example, the user clicks the stop button:
+
+```json
+{
+  "type": "event",
+  "method": "browsingContext.actuationStopped",
+  "params": {
+    "context": "A1B2C3",
+    "cause": "user",
+    "reason": "The user stopped the agent."
+  }
+}
+```
+
 ## Example: a full session
 
 This sequence shows the expected permission flow for one task.
@@ -368,8 +522,16 @@ sequenceDiagram
     UA->>User: permission prompt (optional)
     User-->>UA: decision
     UA-->>Agent: granted and denied permissions, denial reason
-    Agent->>UA: commands in the per-navigable acl
+    Agent->>UA: browsingContext.startActuation (navigable, reason)
+    UA->>User: actuation UI with stop button
+    Agent->>UA: actuation commands in the per-navigable acl
     UA-->>Agent: results and allowed events
+    Agent->>UA: browsingContext.stopActuation
+    UA->>User: remove actuation UI
+    Agent->>UA: browsingContext.startActuation (navigable, reason)
+    UA->>User: actuation UI with stop button
+    User->>UA: stop button
+    UA-->>Agent: browsingContext.actuationStopped (cause: user)
     User->>UA: pause the session
     UA-->>Agent: session.changed (paused: true)
     User->>UA: resume the session
@@ -386,6 +548,8 @@ sequenceDiagram
 | 2. User interrupts the session | `session.changed` with `paused: true`. |
 | 3. User revokes permissions | `session.changed` with the updated `acl`. The connection stays open. |
 | 4. Agent requests more capabilities | `session.setAcl` with a `reason`. The result contains the granted and denied permissions, and an optional reason for the denial. |
+| 5. User sees when the agent actuates | `browsingContext.startActuation` and `browsingContext.stopActuation`. Actuation commands fail outside of an actuation block. Observation commands do not need an actuation block. |
+| 6. User stops an actuation | The user agent ends the actuation block and sends `browsingContext.actuationStopped` with `cause: "user"`. |
 
 ## Detailed design discussion
 
@@ -412,6 +576,20 @@ Events can expose page data, for example console messages or URLs of navigations
 
 Most tasks operate on one tab or a small number of tabs. The `perNavigable` part lets the user grant more permissions for one tab only. The agent can continue to use the `default` permissions for other tabs. Additionally, user agent needs to know which tabs are being controlled by the agent.
 
+### Explicit actuation blocks
+
+The user agent can try to find out from the commands when the agent actuates a navigable. For example, it can show actuation UI after an `input.performActions` command and remove it after a timeout. This approach has problems:
+
+- The UI shows after the first action, not before it.
+- The UI can flicker between two actions of one task.
+- The user agent cannot know when the task is complete.
+
+With `browsingContext.startActuation` and `browsingContext.stopActuation`, the agent gives the start and the end of a task. The user agent can show the UI before the first action and keep it until the task is complete. The stop button gives the user a clear method to stop the agent. The agent receives a notification and does not continue with the next action.
+
+Actuation blocks are separate from the ACL. The ACL controls what the agent can do. An actuation block controls when the agent can actuate, and makes it visible to the user. Thus the agent can keep its permissions for a tab, but actuate the tab only during a task.
+
+The cost is two more commands for each task.
+
 ### Open questions
 
 1. **Session type.** `restricted` is a working name. Is `sessionType` a capability or a top-level parameter of `session.new`? Does a restricted session start with an empty ACL, or can the user agent supply a default ACL?
@@ -420,9 +598,16 @@ Most tasks operate on one tab or a small number of tabs. The `perNavigable` part
 4. **Allowed set.** Which commands and events can an ACL of a restricted session contain? Should this be up to the user agent? Should we have a mechanism to advertise possible commands and events? Recommendation: `session.setAcl` returns the current effective ACL, which can be larger in scope than what the agent requests, so the agent can learn what is allowed by default in the user agent.
 5. **Entries for `perNavigable` only.** Which commands and events are valid only in a `perNavigable` entry? Recommendation: let the user agent decide.
 6. **Subscriptions.** How do the `events` list and `session.subscribe` interact? Recommendation: adding an event to the ACL subscribes to the event. Removing an event from the ACL unsubscribes.
-7. **Errors.** Which error code does a command return when the ACL denies it, or when the session is in the paused state?
+7. **Errors.** Which error code does a command return when the ACL denies it, when the session is in the paused state, or when an actuation command is outside of an actuation block?
 8. **Prompt frequency.** Which permissions can a user agent grant without a user prompt? We think this should be left to the user agent's discretion.
 9. **Denial reason format.** Is one free-text `reason` sufficient? Alternatives are a machine-readable code, or one reason for each denied entry.
+10. **Names of the actuation commands.** `startActuation` and `stopActuation` are working names. Alternatives are `beginActuation` and `endActuation`. Do the commands belong to the `browsingContext` module or the `session` module?
+11. **List of actuation commands.** Which commands are actuation commands? Specifically, are `script.evaluate` and `script.callFunction` actuation commands? Script can click elements and change the page. But agents also use script to read the page. One option is to let the user agent decide. Another option is a read-only mode for script in a sandbox realm.
+12. **Actuation in standard sessions.** Can a standard session use actuation blocks to show actuation UI? Recommendation: yes, but actuation commands do not need an actuation block in a standard session.
+13. **Commands during an actuation block.** Can the agent send commands that are not actuation commands to the navigable during an actuation block? Recommendation: yes. For example, the agent takes screenshots to find the next action.
+14. **Nested and repeated starts.** Does `startActuation` fail if the navigable is already in an actuation block, or does it succeed with no effect? Recommendation: fail, so that the agent knows the state.
+15. **Actuation of more than one navigable.** Some tasks use more than one tab, for example a pop-up window for payment. Is one actuation block for each navigable sufficient, or is an actuation block for a group of navigables necessary?
+16. **Effect of a pause.** When the user pauses the session, do all actuation blocks end? Recommendation: yes. The user agent sends `browsingContext.actuationStopped` for each navigable, and `session.changed`.
 
 ## Roadmap
 
@@ -455,6 +640,8 @@ The user agent could manage all permissions in its own UI, with no protocol surf
 - **Enforcement in the user agent.** The user agent enforces the ACL. The agent and its client library are not trusted to do this.
 - **Origin gating.** The agent cannot send commands to, or receive events from, documents of origins that the ACL does not contain.
 - **User control.** The user can pause the session or revoke permissions at any time. The effect is immediate.
+- **Visible actuation.** In a restricted session, the agent can actuate a navigable only in an actuation block. The user agent can show this to the user, and the user can stop it at any time.
+- **Reason text in `startActuation`.** The `reason` comes from the agent and is not trusted. If the user agent shows it in the actuation UI, it must not show it as a statement of fact.
 - **Limits.** Protocol permissions do not prevent all unwanted actions. An agent with permission to click can do a destructive action on an allowed origin.
 - **Reason text from the agent.** The `reason` in `session.setAcl` comes from the agent and is not trusted. The user agent must not show it as a statement of fact.
 - **Reason text from the user agent.** A denial reason can disclose information about the user or a policy. The user agent selects the content and can omit the reason.
