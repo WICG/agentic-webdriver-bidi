@@ -386,6 +386,11 @@ Commands and events that observe navigables:
 | `log.entryAdded` | Event | Existing | Contains a console message or uncaught JavaScript error from a navigable, if allowed by the user agent. |
 | `browsingContext.userPromptOpened` | Event | Existing | Tells the agent that a navigable opened a JavaScript dialog. |
 | `browsingContext.navigationCommitted` | Event | Existing | Tells the agent that a navigable navigated. The event contains the new URL. |
+| `browsingContext.fragmentNavigated` | Event | Existing | Tells the agent that a navigable navigated to a fragment URL. |
+| `browsingContext.historyUpdated` | Event | Existing | Tells the agent that a navigable updated its history entry (for example via `history.pushState`). |
+| `browsingContext.userPromptClosed` | Event | Existing | Tells the agent that a JavaScript dialog in a navigable closed. |
+| `browsingContext.contextCreated` | Event | Existing | Tells the agent that a navigable was created. |
+| `browsingContext.contextDestroyed` | Event | Existing | Tells the agent that a navigable was destroyed. |
 
 Commands that change navigables:
 
