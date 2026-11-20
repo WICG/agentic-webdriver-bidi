@@ -358,7 +358,7 @@ In this example, the user pauses the session and revokes the permissions for nav
 
 ### Commands and events in a restricted session
 
-A restricted session supports only the commands and events in this section. The `commands` and `events` lists of an ACL can contain only these names. The user agent rejects all other names.
+A restricted session supports only the commands and events in this section. The user agent rejects all other commands. The `commands` and `events` lists of an ACL can contain only the navigable commands and events below; session commands and events are always available and not controlled by the ACL.
 
 Most of these commands and events are existing WebDriver BiDi commands and events. This proposal adds `session.setAcl` and `session.changed`. It also extends some existing commands, as the tables show.
 
@@ -367,6 +367,10 @@ Session commands and events:
 | Name | Type | Status | Description |
 | :--- | :--- | :--- | :--- |
 | [`session.new`](#sessionnew) | Command | Existing, extended | Starts a restricted session if the capabilities contain `sessionType: "restricted"`. |
+| `session.status` | Command | Existing | Returns whether the user agent is ready to create a new session. |
+| `session.end` | Command | Existing | Ends the current session. |
+| `session.subscribe` | Command | Existing | Subscribes to any events. The user agent emits only events allowed by the ACL. |
+| `session.unsubscribe` | Command | Existing | Unsubscribes from events. |
 | [`session.setAcl`](#sessionsetacl) | Command | New | Requests or retracts permissions. The parameters are `acl` and `reason`. The result contains the granted and denied permissions. |
 | [`session.changed`](#sessionchanged) | Event | New | Tells the agent that the user or the user agent paused, resumed, or reconfigured the session. The fields include `acl` and `paused`. |
 
