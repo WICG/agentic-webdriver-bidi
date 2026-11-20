@@ -29,7 +29,8 @@
 - [Detailed design discussion](#detailed-design-discussion)
 - [Transports](#transports)
   - [`browser.driver.connect()`](#browserdriverconnect)
-  - [`browser.driver.tabIdToNavigableId(tabId)`](#browserdrivertabidtonavigableidtabid)
+  - [`browser.driver.getNavigableId(tabId)`](#browserdrivergetnavigableidtabid)
+  - [`browser.driver.getTabId(navigableId)`](#browserdrivergettabidnavigableid)
 - [Roadmap](#roadmap)
 - [Considered alternatives](#considered-alternatives)
 - [Security and privacy considerations](#security-and-privacy-considerations)
@@ -384,8 +385,6 @@ Commands and events that observe navigables:
 | `browsingContext.getTree` | Command | Existing | Returns the tree of navigables whose origins are allowed by the ACL. Navigables with disallowed origins are omitted. |
 | `browsingContext.captureScreenshot` | Command | Existing | Returns a screenshot of a navigable. The user agent redacts the screenshot in accordance with the origin permissions. |
 | `browsingContext.locateNodes` | Command | Existing, extended | Finds DOM elements by locator. The extension adds a locator for an `x`, `y` position and returns serialized accessibility data. |
-| `script.evaluate` | Command | Existing, restricted | Evaluates script in a navigable. `target` must specify a browsing context and a non-empty `sandbox`. Awaits promises when `awaitPromise` is `true` and returns a serialized result (`script.RemoteValue`). |
-| `script.callFunction` | Command | Existing, restricted | Calls a function in a navigable (for example with `sharedId` node references from `browsingContext.locateNodes`). `target` must specify a browsing context and a non-empty `sandbox`. Awaits promises when `awaitPromise` is `true` and returns a serialized result (`script.RemoteValue`). |
 | `log.entryAdded` | Event | Existing | Contains a console message or uncaught JavaScript error from a navigable, if allowed by the user agent. |
 | `browsingContext.userPromptOpened` | Event | Existing | Tells the agent that a navigable opened a JavaScript dialog. |
 | `browsingContext.navigationCommitted` | Event | Existing | Tells the agent that a navigable navigated. The event contains the new URL. |
@@ -407,6 +406,8 @@ Commands that change navigables:
 | `browsingContext.handleUserPrompt` | Command | Existing | Accepts or dismisses a JavaScript dialog in a navigable. |
 | `input.performActions` | Command | Existing, extension planned | Sends trusted keyboard, pointer, and wheel actions to a navigable. |
 | `input.releaseActions` | Command | Existing | Releases all keys and pointer buttons that are in the pressed state in a navigable. |
+| `script.callFunction` | Command | Existing, restricted | Calls a function in a navigable (for example with `sharedId` node references from `browsingContext.locateNodes`). `target` must specify a browsing context and a non-empty `sandbox`. Awaits promises when `awaitPromise` is `true` and returns a serialized result (`script.RemoteValue`). |
+| `script.evaluate` | Command | Existing, restricted | Evaluates script in a navigable. `target` must specify a browsing context and a non-empty `sandbox`. Awaits promises when `awaitPromise` is `true` and returns a serialized result (`script.RemoteValue`). |
 
 `input.performActions` does not tell the agent the result of an action ([#5](https://github.com/WICG/agentic-webdriver-bidi/issues/5)). The agent needs this feedback:
 
@@ -441,8 +442,10 @@ The actuation commands include:
 - `browsingContext.traverseHistory`
 - `input.performActions`
 - `input.releaseActions`
+- `script.callFunction`
+- `script.evaluate`
 
-Script evaluation (`script.evaluate`, `script.callFunction`) can change the page, but agents also use it to read the page. See the [open questions](#open-questions).
+`script.callFunction` and `script.evaluate` are actuation commands because script can click elements and change the page. See the [open questions](#open-questions) for read-only script evaluation.
 
 An agent that only observes a navigable does not cause actuation UI. For example, a `perNavigable` entry with only `browsingContext.captureScreenshot` does not make the navigable an actuated navigable.
 
@@ -563,7 +566,7 @@ The cost is that the actuation UI depends on the agent: the agent must retract t
 7. **Errors.** Which error code does a command return when the ACL denies it, or when the session is in the paused state?
 8. **Prompt frequency.** Which permissions can a user agent grant without a user prompt? We think this should be left to the user agent's discretion.
 9. **Denial reason format.** Is one free-text `reason` sufficient? Alternatives are a machine-readable code, or one reason for each denied entry.
-10. **List of actuation commands.** Which commands are actuation commands? Specifically, are `script.evaluate` and `script.callFunction` actuation commands? Script can click elements and change the page. But agents also use script to read the page. One option is to let the user agent decide. Another option is a read-only mode for script in a sandbox realm.
+10. **Read-only script evaluation.** `script.callFunction` and `script.evaluate` are actuation commands because script can click elements and change the page. Agents also use script to read the page. Should the protocol add a read-only mode for script in a sandbox realm that does not cause actuation UI?
 11. **Agents that do not retract permissions.** If an agent does not retract its actuation commands, the actuation UI stays visible. Should the protocol recommend that the user agent revokes actuation commands after a period of inactivity?
 
 ## Transports
@@ -590,7 +593,10 @@ browser.driver = {
   connect(): browser.runtime.Port;
 
   // Resolves a tab id to the id of the top-level navigable in the tab.
-  tabIdToNavigableId(tabId: number): Promise<string>;
+  getNavigableId(tabId: number): Promise<string>;
+
+  // Resolves a navigable id to the id of the tab that contains the navigable.
+  getTabId(navigableId: string): Promise<number>;
 }
 ```
 
@@ -617,16 +623,27 @@ The API maps to the abstract connection of [w3c/webdriver-bidi#996](https://gith
 
 Unlike `handle a connection closing` in [w3c/webdriver-bidi#996](https://github.com/w3c/webdriver-bidi/pull/996), closing the port also runs `end the session` and `cleanup the session` for any active session.
 
-### `browser.driver.tabIdToNavigableId(tabId)`
+### `browser.driver.getNavigableId(tabId)`
 
-Extension APIs identify a tab with a tab id. WebDriver BiDi identifies a navigable with a navigable id. `browser.driver.tabIdToNavigableId(tabId)` resolves the tab id to the id of the top-level navigable in that tab. The method returns a promise that resolves with the navigable id.
+Extension APIs identify a tab with a tab id. WebDriver BiDi identifies a navigable with a navigable id. `browser.driver.getNavigableId(tabId)` resolves the tab id to the id of the top-level navigable in that tab. The method returns a promise that resolves with the navigable id.
 
 ```ts
 // Resolves a tab id to the id of the top-level navigable in the tab.
-browser.driver.tabIdToNavigableId(tabId: number): Promise<string>;
+browser.driver.getNavigableId(tabId: number): Promise<string>;
 ```
 
 The extension can use the navigable id in commands, and as a key in the `perNavigable` part of the ACL.
+
+### `browser.driver.getTabId(navigableId)`
+
+`browser.driver.getTabId(navigableId)` is the reverse of `getNavigableId(tabId)`. It resolves the navigable id to the id of the tab that contains the navigable. The method returns a promise that resolves with the tab id.
+
+```ts
+// Resolves a navigable id to the id of the tab that contains the navigable.
+browser.driver.getTabId(navigableId: string): Promise<number>;
+```
+
+The extension can use the tab id in extension APIs, for example to find the tab for a WebDriver BiDi event.
 
 ### Example: an extension starts a restricted session
 
@@ -658,7 +675,7 @@ browser.action.onClicked.addListener(async (tab) => {
 
   // ... wait for the command with id 1 to finish ...
 
-  const navigableId = await browser.driver.tabIdToNavigableId(tab.id);
+  const navigableId = await browser.driver.getNavigableId(tab.id);
 
   port.postMessage({
     id: 2,
@@ -724,6 +741,7 @@ The user agent could manage all permissions in its own UI, with no protocol surf
 - **Limits.** Protocol permissions do not prevent all unwanted actions. An agent with permission to click can do a destructive action on an allowed origin.
 - **Reason text from the agent.** The `reason` in `session.setAcl` comes from the agent and is not trusted. The user agent must not show it as a statement of fact.
 - **Reason text from the user agent.** A denial reason can disclose information about the user or a policy. The user agent selects the content and can omit the reason.
+- **Enterprise policy blocklists.** The protocol does not disclose the full blocklist of the user agent. The ACL contains only allowed items, and the `denied` field contains only items that the agent requested. `browsingContext.getTree` omits blocked origins and origins that are not in the ACL in the same way. But an agent can name many items in one `session.setAcl` call and learn from `denied` which of them are blocked. The user agent can limit this, for example with generic denial reasons, limits on request size, or rate limits.
 
 ## Stakeholder feedback
 
@@ -736,7 +754,7 @@ The user agent could manage all permissions in its own UI, with no protocol surf
 
 ## References and acknowledgements
 
-- [WebDriver BiDi](https://www.w3.org/TR/webdriver-bidi/)
+- [WebDriver BiDi](https://w3c.github.io/webdriver-bidi/)
 - [WICG proposal: Agentic extensions for WebDriver BiDi](https://github.com/WICG/proposals/issues/320)
 
 Thanks to the participants of the proposal discussion for their feedback.
