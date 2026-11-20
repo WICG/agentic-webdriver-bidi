@@ -735,7 +735,7 @@ The user agent could manage all permissions in its own UI, with no protocol surf
 
 ## References and acknowledgements
 
-- [WebDriver BiDi](https://www.w3.org/TR/webdriver-bidi/)
+- [WebDriver BiDi](https://w3c.github.io/webdriver-bidi/)
 - [WICG proposal: Agentic extensions for WebDriver BiDi](https://github.com/WICG/proposals/issues/320)
 
 Thanks to the participants of the proposal discussion for their feedback.
