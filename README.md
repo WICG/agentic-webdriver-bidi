@@ -31,6 +31,7 @@
   - [`browser.driver.connect()`](#browserdriverconnect)
   - [`browser.driver.getNavigableId(tabId)`](#browserdrivergetnavigableidtabid)
   - [`browser.driver.getTabId(navigableId)`](#browserdrivergettabidnavigableid)
+- [Open questions](#open-questions)
 - [Roadmap](#roadmap)
 - [Considered alternatives](#considered-alternatives)
 - [Security and privacy considerations](#security-and-privacy-considerations)
@@ -102,7 +103,7 @@ The ACL has two parts:
 
 Access control is a property of the session. The ACL does not need an entry for each navigable. If a navigable has no `perNavigable` entry, the session has only the `default` access in that navigable (see [#36](https://github.com/WICG/agentic-webdriver-bidi/issues/36) for descendant subframes). An empty entry has the same effect as no entry. The agent requests access in a specific navigable only if the session needs access that `default` does not include:
 
-- The ACL has an entry for each [actuated navigable](#terminology), because actuation commands are valid only in a `perNavigable` entry.
+- The ACL has an entry for each [actuated navigable](#terminology), because actuation commands are valid only in a `perNavigable` entry (see [#28](https://github.com/WICG/agentic-webdriver-bidi/issues/28) on `perNavigable`-only restrictions).
 - For a navigable that is not actuated, the ACL needs an entry only for access that is not in `default`, or for commands and events that the user agent allows only in a `perNavigable` entry.
 
 Each part contains three lists (see [#26](https://github.com/WICG/agentic-webdriver-bidi/issues/26) for full-access shortcuts):
@@ -136,9 +137,9 @@ The user agent enforces the ACL (see [#30](https://github.com/WICG/agentic-webdr
 - A command fails if the ACL does not contain the origin of the target document (see [#8](https://github.com/WICG/agentic-webdriver-bidi/issues/8) for pausing instead of aborting).
 - The user agent does not send an event if the ACL does not contain the event for the source navigable.
 
-User agents may restrict some commands and events to be valid only in a `perNavigable` entry. It is recommended that actuation commands are valid only in a `perNavigable` entry, because they are the signal for [actuation UI](#actuation-ui).
+User agents may restrict some commands and events to be valid only in a `perNavigable` entry. It is recommended that actuation commands are valid only in a `perNavigable` entry, because they are the signal for [actuation UI](#actuation-ui) (see [#28](https://github.com/WICG/agentic-webdriver-bidi/issues/28) on `perNavigable`-only restrictions).
 
-Event subscriptions are independent of the ACL `events` list. The agent uses `session.subscribe` and `session.unsubscribe` as usual; events not allowed by the ACL are filtered out before they are emitted (see [#29](https://github.com/WICG/agentic-webdriver-bidi/issues/29)).
+Event subscriptions are independent of the ACL `events` list. The agent uses `session.subscribe` and `session.unsubscribe` as usual; events not allowed by the ACL are filtered out before they are emitted (see [#29](https://github.com/WICG/agentic-webdriver-bidi/issues/29) for subscriptions).
 
 The ACL does not control these commands and events. They are always available in a restricted session:
 
@@ -384,7 +385,7 @@ In this example, the user pauses the session and revokes the permissions for nav
 
 ### Commands and events in a restricted session
 
-A restricted session supports only the commands and events in this section (see [#27](https://github.com/WICG/agentic-webdriver-bidi/issues/27)). The user agent rejects all other commands. The `commands` and `events` lists of an ACL can contain only the navigable commands and events below; session commands and events are always available and not controlled by the ACL.
+A restricted session supports only the commands and events in this section (see [#27](https://github.com/WICG/agentic-webdriver-bidi/issues/27) on the allowed set and discovery). The user agent rejects all other commands. The `commands` and `events` lists of an ACL can contain only the navigable commands and events below; session commands and events are always available and not controlled by the ACL.
 
 Most of these commands and events are existing WebDriver BiDi commands and events. This proposal adds `session.setAcl` and `session.changed`. It also extends some existing commands, as the tables show.
 
@@ -577,10 +578,6 @@ This design does not add commands to the protocol. The ACL already contains the 
 
 The cost is that the actuation UI depends on the agent: the agent must retract the actuation commands after use. The protocol cannot enforce this, but the user agent can revoke permissions at any time.
 
-### Open questions
-
-Open questions are tracked in the [issue tracker](https://github.com/WICG/agentic-webdriver-bidi/issues).
-
 ## Transports
 
 WebDriver BiDi defines one transport: WebSocket. A WebSocket transport needs a network endpoint in the browser. A browser extension cannot use that endpoint easily, and an open port increases the attack surface of the browser.
@@ -712,6 +709,10 @@ browser.action.onClicked.addListener(async (tab) => {
 
 > [!NOTE]
 > The port is a low-level interface. An extension can wrap the port in a promise-based interface that is easier to use. For example, a `send(method, params)` function can return a promise that resolves with the response that has the same `id`.
+
+## Open questions
+
+Open questions are tracked in the [issue tracker](https://github.com/WICG/agentic-webdriver-bidi/issues).
 
 ## Roadmap
 
