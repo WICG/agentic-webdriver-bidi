@@ -29,7 +29,8 @@
 - [Detailed design discussion](#detailed-design-discussion)
 - [Transports](#transports)
   - [`browser.driver.connect()`](#browserdriverconnect)
-  - [`browser.driver.tabIdToNavigableId(tabId)`](#browserdrivertabidtonavigableidtabid)
+  - [`browser.driver.getNavigableId(tabId)`](#browserdrivergetnavigableidtabid)
+  - [`browser.driver.getTabId(navigableId)`](#browserdrivergettabidnavigableid)
 - [Roadmap](#roadmap)
 - [Considered alternatives](#considered-alternatives)
 - [Security and privacy considerations](#security-and-privacy-considerations)
@@ -590,7 +591,10 @@ browser.driver = {
   connect(): Promise<WebDriverBiDiTransport>;
 
   // Resolves a tab id to the id of the top-level navigable in the tab.
-  tabIdToNavigableId(tabId: number): Promise<string>;
+  getNavigableId(tabId: number): Promise<string>;
+
+  // Resolves a navigable id to the id of the tab that contains the navigable.
+  getTabId(navigableId: string): Promise<number>;
 }
 
 interface WebDriverBiDiTransport {
@@ -628,16 +632,27 @@ The API maps to the abstract connection of [w3c/webdriver-bidi#996](https://gith
 | Send a connection message to the local end | The browser calls the `onMessage` listeners |
 | Close the connection | `close()` |
 
-### `browser.driver.tabIdToNavigableId(tabId)`
+### `browser.driver.getNavigableId(tabId)`
 
-Extension APIs identify a tab with a tab id. WebDriver BiDi identifies a navigable with a navigable id. `browser.driver.tabIdToNavigableId(tabId)` resolves the tab id to the id of the top-level navigable in that tab. The method returns a promise that resolves with the navigable id.
+Extension APIs identify a tab with a tab id. WebDriver BiDi identifies a navigable with a navigable id. `browser.driver.getNavigableId(tabId)` resolves the tab id to the id of the top-level navigable in that tab. The method returns a promise that resolves with the navigable id.
 
 ```ts
 // Resolves a tab id to the id of the top-level navigable in the tab.
-browser.driver.tabIdToNavigableId(tabId: number): Promise<string>;
+browser.driver.getNavigableId(tabId: number): Promise<string>;
 ```
 
 The extension can use the navigable id in commands, and as a key in the `perNavigable` part of the ACL.
+
+### `browser.driver.getTabId(navigableId)`
+
+`browser.driver.getTabId(navigableId)` is the reverse of `getNavigableId(tabId)`. It resolves the navigable id to the id of the tab that contains the navigable. The method returns a promise that resolves with the tab id.
+
+```ts
+// Resolves a navigable id to the id of the tab that contains the navigable.
+browser.driver.getTabId(navigableId: string): Promise<number>;
+```
+
+The extension can use the tab id in extension APIs, for example to find the tab for a WebDriver BiDi event.
 
 ### Example: an extension starts a restricted session
 
@@ -660,7 +675,7 @@ browser.action.onClicked.addListener(async (tab) => {
     }
   }));
 
-  const navigableId = await browser.driver.tabIdToNavigableId(tab.id);
+  const navigableId = await browser.driver.getNavigableId(tab.id);
 
   await transport.sendMessage(JSON.stringify({
     id: 2,
@@ -687,7 +702,6 @@ browser.action.onClicked.addListener(async (tab) => {
 ### Open questions for transports
 
 1. **Extension permission.** Which manifest permission gives access to `browser.driver`?
-2. **Reverse mapping.** Is a method necessary to resolve a navigable id to a tab id?
 
 ## Roadmap
 
