@@ -100,6 +100,11 @@ The ACL has two parts:
 - `default` contains the permissions of the full session, for all navigables.
 - `perNavigable` contains more permissions for specific navigables. Each entry extends the `default` configuration. It does not replace it.
 
+Access control is a property of the session. The ACL does not need an entry for each navigable. If a navigable has no `perNavigable` entry, the session has only the `default` access in that navigable. An empty entry has the same effect as no entry. The agent requests access in a specific navigable only if the session needs access that `default` does not include:
+
+- The ACL has an entry for each [actuated navigable](#terminology), because actuation commands are valid only in a `perNavigable` entry.
+- For a navigable that is not actuated, the ACL needs an entry only for access that is not in `default`, or for commands and events that the user agent allows only in a `perNavigable` entry.
+
 Each part contains three lists:
 
 - `origins`: the origins that the agent can access.
