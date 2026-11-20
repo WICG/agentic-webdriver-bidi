@@ -578,55 +578,44 @@ The intended home for the extension transport is the [WebExtensions specificatio
 
 ### `browser.driver.connect()`
 
-`browser.driver.connect()` creates a new WebDriver BiDi transport and a new connection. The returned object sends and receives WebDriver BiDi messages for that connection.
+`browser.driver.connect()` creates a new WebDriver BiDi connection and returns a [`runtime.Port`](https://developer.mozilla.org/en-US/docs/Mozilla/Add-ons/WebExtensions/API/runtime/Port) object. The returned port sends and receives WebDriver BiDi messages for that connection.
 
-`connect()` does not create a session. The extension sends `session.new` on the connection to create a session. The extension sends `session.end` to end the session.
+`connect()` does not create a session. The extension sends `session.new` on the port to create a session. The extension sends `session.end` to end the session.
 
 The extension transport supports restricted sessions only. An extension cannot create a standard session on this transport, because a standard session gives full access to the browser.
 
 ```ts
 browser.driver = {
-  // Creates a new WebDriver BiDi transport and connection.
-  connect(): Promise<WebDriverBiDiTransport>;
+  // Creates a new WebDriver BiDi connection and returns a runtime.Port.
+  connect(): browser.runtime.Port;
 
   // Resolves a tab id to the id of the top-level navigable in the tab.
   tabIdToNavigableId(tabId: number): Promise<string>;
 }
-
-interface WebDriverBiDiTransport {
-  // The browser calls each listener one time for each incoming message.
-  readonly onMessage: {
-    // Adds a message listener.
-    addListener(callback: (message: string) => void): void;
-
-    // Removes a message listener that was added before.
-    removeListener(callback: (message: string) => void): void;
-  };
-
-  // Sends a message, for example a command.
-  sendMessage(message: string): Promise<void>;
-
-  // Closes the connection. The session of the connection ends.
-  close(): Promise<void>;
-}
 ```
 
-The members of `WebDriverBiDiTransport` are:
+The returned [`runtime.Port`](https://developer.mozilla.org/en-US/docs/Mozilla/Add-ons/WebExtensions/API/runtime/Port) uses these members for the WebDriver BiDi connection:
 
-- `onMessage`: an event with `addListener` and `removeListener`. It has the same pattern as [`chrome.debugger.onEvent`](https://developer.chrome.com/docs/extensions/reference/api/debugger#event-onEvent). The browser calls each listener for each incoming message. A message is a command response, an error response, or an event.
-- `sendMessage(message)`: sends one message to the browser. The promise resolves when the browser accepts the message. The promise does not contain the command response. The response arrives through `onMessage`.
-- `close()`: closes the connection. The WebDriver BiDi specification ends the session when its connection closes. Thus `close()` also ends the session.
+- `onMessage`: a standard WebExtensions [`events.Event`](https://developer.mozilla.org/en-US/docs/Mozilla/Add-ons/WebExtensions/API/events/Event) with `addListener`, `removeListener`, and `hasListener`. The browser calls each listener with `(message, port)` for each incoming message. A message is a command response, an error response, or an event.
+- `onDisconnect`: a standard WebExtensions [`events.Event`](https://developer.mozilla.org/en-US/docs/Mozilla/Add-ons/WebExtensions/API/events/Event). The browser fires this event at most once when it closes the connection, for example after `session.end`, on setup failure, or on error. Calling `port.disconnect()` does not fire this event on the same port. The listener receives the `Port` object. If the connection closed due to an error, `port.error` (or `browser.runtime.lastError`) describes the error.
+- `postMessage(message)`: sends one message to the browser. This method does not return the command response. The response arrives through `onMessage`. If the port is disconnected or `message` is not serializable, `postMessage()` throws synchronously.
+- `disconnect()`: closes the port and the connection.
 
-Each `message` is a string that contains one serialized WebDriver BiDi message. The format is the same as for the WebSocket transport. Thus a client library can use the same code for the two transports.
+When the port closes for any reason, the browser ends any active session on that connection. This applies to `port.disconnect()`, extension context unload, and browser close.
+
+Each `message` is a JSON-compatible [serializable value](https://developer.mozilla.org/en-US/docs/Mozilla/Add-ons/WebExtensions/Chrome_incompatibilities#data_cloning_algorithm) defined by the [WebDriver BiDi protocol definition](https://www.w3.org/TR/webdriver-bidi/#protocol-definition). Outgoing messages sent through `postMessage()` match [`Command`](https://www.w3.org/TR/webdriver-bidi/#cddl-type-command), and incoming messages delivered through `onMessage` match [`Message`](https://www.w3.org/TR/webdriver-bidi/#cddl-type-message). Like `runtime.connectNative()`, the port uses JSON serialization, so JSON-compatible values serialize identically across browsers. Valid serializable values that do not match `Command` receive a WebDriver BiDi error response (for example, `invalid argument` or `unknown command`) through `onMessage`.
 
 The API maps to the abstract connection of [w3c/webdriver-bidi#996](https://github.com/w3c/webdriver-bidi/pull/996) as follows:
 
 | Abstract connection | Extension transport |
 | :--- | :--- |
-| Establish a connection | `browser.driver.connect()` |
-| The transport receives a message from the local end | `sendMessage(message)` |
-| Send a connection message to the local end | The browser calls the `onMessage` listeners |
-| Close the connection | `close()` |
+| Establish a connection | `browser.driver.connect()` adds the new connection to `connections not associated with a session`. |
+| The transport receives a message from the local end | `port.postMessage(message)` converts `message` and handles it as an incoming message. |
+| Send a connection message to the local end | The browser converts the message and calls the `port.onMessage` listeners. |
+| Close the connection | After delivering pending messages to `port.onMessage`, the browser closes the port and calls the `port.onDisconnect` listeners. |
+| The connection is closed | The extension calls `port.disconnect()`, the extension context unloads, or the browser closes the port. The browser also ends any active session. |
+
+Unlike `handle a connection closing` in [w3c/webdriver-bidi#996](https://github.com/w3c/webdriver-bidi/pull/996), closing the port also runs `end the session` and `cleanup the session` for any active session.
 
 ### `browser.driver.tabIdToNavigableId(tabId)`
 
@@ -645,24 +634,33 @@ In this example, the user clicks the extension action on a tab. The extension op
 
 ```js
 browser.action.onClicked.addListener(async (tab) => {
-  const transport = await browser.driver.connect();
+  const port = browser.driver.connect();
 
-  transport.onMessage.addListener((message) => {
-    const data = JSON.parse(message);
+  port.onMessage.addListener((message) => {
     // Process command responses and events.
   });
 
-  await transport.sendMessage(JSON.stringify({
+  port.onDisconnect.addListener((disconnectedPort) => {
+    const error = disconnectedPort.error ?? browser.runtime.lastError;
+    if (error) {
+      // Handle transport error.
+    }
+    // Handle connection close.
+  });
+
+  port.postMessage({
     id: 1,
     method: "session.new",
     params: {
       capabilities: {alwaysMatch: {sessionType: "restricted"}}
     }
-  }));
+  });
+
+  // ... wait for the command with id 1 to finish ...
 
   const navigableId = await browser.driver.tabIdToNavigableId(tab.id);
 
-  await transport.sendMessage(JSON.stringify({
+  port.postMessage({
     id: 2,
     method: "session.setAcl",
     params: {
@@ -677,17 +675,20 @@ browser.action.onClicked.addListener(async (tab) => {
       },
       reason: "Read the tab that the user selected."
     }
-  }));
+  });
+
+  // ... wait for the command with id 2 to finish and check the effective ACL ...
 });
 ```
 
 > [!NOTE]
-> The transport is a low-level interface. An extension can wrap the transport in a promise-based interface that is easier to use. For example, a `send(method, params)` function can return a promise that resolves with the response that has the same `id`.
+> The port is a low-level interface. An extension can wrap the port in a promise-based interface that is easier to use. For example, a `send(method, params)` function can return a promise that resolves with the response that has the same `id`.
 
 ### Open questions for transports
 
 1. **Extension permission.** Which manifest permission gives access to `browser.driver`?
 2. **Reverse mapping.** Is a method necessary to resolve a navigable id to a tab id?
+3. **Service worker lifetime.** Does an open `browser.driver.connect()` port keep a Manifest V3 service worker alive (like `runtime.connectNative()`) while a session is paused or waiting?
 
 ## Roadmap
 
