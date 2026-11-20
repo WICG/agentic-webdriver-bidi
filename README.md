@@ -131,7 +131,7 @@ The user agent enforces the ACL:
 - A command fails if the ACL does not contain the origin of the target document.
 - The user agent does not send an event if the ACL does not contain the event for the source navigable.
 
-User agents may restrict some commands and events to be valid only in a `perNavigable` entry. Actuation commands are valid only in a `perNavigable` entry, because they are the signal for [actuation UI](#actuation-ui).
+User agents may restrict some commands and events to be valid only in a `perNavigable` entry. It is recommended that actuation commands are valid only in a `perNavigable` entry, because they are the signal for [actuation UI](#actuation-ui).
 
 The ACL does not control these commands and events. They are always available in a restricted session:
 
@@ -145,6 +145,8 @@ The ACL does not control these commands and events. They are always available in
 A client includes `sessionType: "restricted"` in the capabilities of `session.new` to start a restricted session. The result confirms the session type.
 
 `session.new` does not accept an ACL. A restricted session starts with an empty ACL (or only user-agent-default permissions). The agent sends [`session.setAcl`](#sessionsetacl) to request permissions and receive the effective ACL before using other commands or receiving other events.
+
+User agents must not rely solely on the client passing `sessionType: "restricted"` in `session.new` to enforce restrictions, because a client could omit it and obtain a standard (unrestricted) session. Agent-facing transports and endpoints should allow only restricted sessions (for example, the [extension transport](#browserdriverconnect)).
 
 Request:
 
@@ -181,10 +183,13 @@ Response:
 
 The agent sends `session.setAcl` to change the ACL of the session. This command is the only method to get permissions. There are two uses:
 
-- **Request permissions.** The agent must give a `reason`. The user or the user agent can grant or deny the request.
+- **Request permissions.** The agent can provide a `reason`. The user or the user agent can grant or deny the request.
 - **Retract permissions.** For example, the agent removes the permissions for a navigable after it completes an interaction.
 
-The `acl` parameter contains the full ACL that the agent requests for the session.
+The command accepts two parameters:
+
+- `acl`: the full ACL that the agent requests for the session.
+- `reason`: an optional text from the agent that explains the request. The user agent may deny a permission request without a `reason`.
 
 The result contains two fields:
 
@@ -197,6 +202,14 @@ The `denied` field contains two fields:
 - `reason`: an optional text from the user agent that explains the denial. The agent can use it to select a different approach.
 
 We expect agents to request permissions only when necessary, and to retract them after use. This is especially important for actuation commands, because they control the [actuation UI](#actuation-ui).
+
+#### Ordering of concurrent calls
+
+`session.setAcl` carries the full ACL and may wait on a user prompt. Without ordering, out-of-order prompts lose updates, `denied` is computed against a moving base, and a pending request can undo a revocation.
+
+- The user agent queues only `session.setAcl` calls and processes them strictly one after another, in arrival order. Other commands are not queued and continue to run against the current effective ACL while a `session.setAcl` call is pending.
+- A queued `session.setAcl` call is evaluated against the effective ACL at the time it runs, after any revocation by the user. A revoked entry that the request still contains counts as a new request (the user agent prompts again or denies it) and is never silently restored.
+- If the agent sends a second `session.setAcl` call before it sees the first result, the second call's full ACL wins. Avoiding this race is the client's responsibility.
 
 #### Example: first request
 
@@ -375,7 +388,7 @@ Session commands and events:
 | `session.end` | Command | Existing | Ends the current session. |
 | `session.subscribe` | Command | Existing | Subscribes to any events. The user agent emits only events allowed by the ACL. |
 | `session.unsubscribe` | Command | Existing | Unsubscribes from events. |
-| [`session.setAcl`](#sessionsetacl) | Command | New | Requests or retracts permissions. The parameters are `acl` and `reason`. The result contains the granted and denied permissions. |
+| [`session.setAcl`](#sessionsetacl) | Command | New | Requests or retracts permissions. The parameters are `acl` and an optional `reason`. The result contains the granted and denied permissions. |
 | [`session.changed`](#sessionchanged) | Event | New | Tells the agent that the user or the user agent paused, resumed, or reconfigured the session. The fields include `acl` and `paused`. |
 
 Commands and events that observe navigables:
@@ -487,13 +500,13 @@ sequenceDiagram
 
     Agent->>UA: session.new (sessionType: restricted)
     UA-->>Agent: restricted session (empty or default acl)
-    Agent->>UA: session.setAcl (first acl, reason)
+    Agent->>UA: session.setAcl (first acl, optional reason)
     UA->>User: permission prompt (optional)
     User-->>UA: decision
     UA-->>Agent: granted acl
     Agent->>UA: commands in the default acl
     UA-->>Agent: results
-    Agent->>UA: session.setAcl (more permissions for one navigable, reason)
+    Agent->>UA: session.setAcl (more permissions for one navigable, optional reason)
     UA->>User: permission prompt (optional)
     User-->>UA: decision
     UA-->>Agent: granted and denied permissions, denial reason
@@ -516,7 +529,7 @@ sequenceDiagram
 | 1. Only allowed operations | A restricted session allows only operations in its effective ACL (initially empty or user-agent defaults). The user agent enforces the `origins`, `commands`, and `events` lists of the ACL. |
 | 2. User interrupts the session | `session.changed` with `paused: true`. |
 | 3. User revokes permissions | `session.changed` with the updated `acl`. The connection stays open. |
-| 4. Agent requests more capabilities | `session.setAcl` with a `reason`. The result contains the granted and denied permissions, and an optional reason for the denial. |
+| 4. Agent requests more capabilities | `session.setAcl` with an optional `reason`. The result contains the granted and denied permissions, and an optional reason for the denial. |
 | 5. User sees which navigables the agent can actuate | The user agent shows actuation UI for each navigable whose `perNavigable` entry contains an actuation command. Actuation commands are valid only in `perNavigable` entries. Observation commands do not cause actuation UI. |
 | 6. User stops the agent | The stop button pauses the session. The agent receives `session.changed` with `paused: true`. |
 
@@ -524,14 +537,14 @@ sequenceDiagram
 
 ### Permissions are part of the protocol
 
-An out-of-band permission mechanism is not interoperable. The agent also cannot react to it. Thus the protocol contains the request (`session.setAcl`), the result, and the change notification (`session.changed`). Each user agent selects how to make the decision. For example, it can use a user prompt, an enterprise policy, or its own analysis of the `reason`.
+An out-of-band permission mechanism is not interoperable. The agent also cannot react to it. Thus the protocol contains the request (`session.setAcl`), the result, and the change notification (`session.changed`). Each user agent selects how to make the decision. For example, it can use a user prompt, an enterprise policy, or its own analysis of the `reason` (if provided).
 
 ### Session type in `session.new`, permissions in `session.setAcl`
 
 `session.new` only selects the restricted mode. All permission requests use `session.setAcl`. This design has these advantages:
 
 - There is one code path for permission requests, results, and denials.
-- Each permission request has a `reason` and occurs near the time of use.
+- Each permission request can include a `reason` and occurs near the time of use.
 - Session creation does not wait for a user decision.
 - Capability matching in `session.new` does not need rules for a partial grant.
 
@@ -722,7 +735,7 @@ A more general capability can contain allowlists and denylists for modules, comm
 
 ### ACL in `session.new`
 
-An earlier version of this document accepted an ACL as a capability in `session.new`. The result contained the granted ACL. We replaced this design because it made two methods to request permissions. The request in `session.new` also had no `reason`, and a user prompt could delay session creation.
+An earlier version of this document accepted an ACL as a capability in `session.new`. The result contained the granted ACL. We replaced this design because it made two methods to request permissions. The request in `session.new` also had no `reason` parameter, and a user prompt could delay session creation.
 
 ### Session type with permissions outside the protocol
 
@@ -733,11 +746,13 @@ The user agent could manage all permissions in its own UI, with no protocol surf
 ## Security and privacy considerations
 
 - **Least privilege.** A restricted session starts with no permissions beyond user-agent defaults. It can use only the origins, commands, and events in its effective ACL. Standard WebDriver BiDi gives full access to the browser.
+- **No bypass via `session.new`.** User agents must not rely solely on the client requesting `sessionType: "restricted"` in `session.new`, because a client could omit it to obtain a standard (unrestricted) session. Agent-facing transports and endpoints should allow only restricted sessions (see [`session.new`](#sessionnew) and the [extension transport](#browserdriverconnect)).
 - **Enforcement in the user agent.** The user agent enforces the ACL. The agent and its client library are not trusted to do this.
 - **Origin gating.** The agent cannot send commands to, or receive events from, documents of origins that the ACL does not contain.
 - **User control.** The user can pause the session or revoke permissions at any time. The effect is immediate.
 - **Visible actuation.** The agent can actuate a navigable only if the `perNavigable` entry for that navigable contains actuation commands. Thus the user agent knows all navigables that the agent can actuate, and can show this to the user. If an agent keeps its permissions longer than necessary, the user agent shows the actuation UI for longer, not shorter.
 - **Limits.** Protocol permissions do not prevent all unwanted actions. An agent with permission to click can do a destructive action on an allowed origin.
+- **Sub-task isolation.** The user agent cannot distinguish an agent harness from the model, and one session cannot control another session's ACL, so limiting sub-tasks (for example, a planner versus sub-agents) is the client's responsibility.
 - **Reason text from the agent.** The `reason` in `session.setAcl` comes from the agent and is not trusted. The user agent must not show it as a statement of fact.
 - **Reason text from the user agent.** A denial reason can disclose information about the user or a policy. The user agent selects the content and can omit the reason.
 - **Enterprise policy blocklists.** The protocol does not disclose the full blocklist of the user agent. The ACL contains only allowed items, and the `denied` field contains only items that the agent requested. `browsingContext.getTree` omits blocked origins and origins that are not in the ACL in the same way. But an agent can name many items in one `session.setAcl` call and learn from `denied` which of them are blocked. The user agent can limit this, for example with generic denial reasons, limits on request size, or rate limits.
