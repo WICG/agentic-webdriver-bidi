@@ -381,7 +381,8 @@ Commands and events that observe navigables:
 | `browsingContext.getTree` | Command | Existing | Returns the tree of navigables whose origins are allowed by the ACL. Navigables with disallowed origins are omitted. |
 | `browsingContext.captureScreenshot` | Command | Existing | Returns a screenshot of a navigable. The user agent redacts the screenshot in accordance with the origin permissions. |
 | `browsingContext.locateNodes` | Command | Existing, extended | Finds DOM elements by locator. The extension adds a locator for an `x`, `y` position and returns serialized accessibility data. |
-| `script.evaluate` | Command | Existing | Evaluates script in a sandbox realm of a navigable. The user agent awaits promises and returns a JSON-serialized result. |
+| `script.evaluate` | Command | Existing, restricted | Evaluates script in a navigable. `target` must specify a browsing context and a non-empty `sandbox`. Awaits promises when `awaitPromise` is `true` and returns a serialized result (`script.RemoteValue`). |
+| `script.callFunction` | Command | Existing, restricted | Calls a function in a navigable (for example with `sharedId` node references from `browsingContext.locateNodes`). `target` must specify a browsing context and a non-empty `sandbox`. Awaits promises when `awaitPromise` is `true` and returns a serialized result (`script.RemoteValue`). |
 | `log.entryAdded` | Event | Existing | Contains a console message from an actuated navigable. |
 | `browsingContext.userPromptOpened` | Event | Existing | Tells the agent that an actuated navigable opened a JavaScript dialog. |
 | `browsingContext.navigationCommitted` | Event | Existing | Tells the agent that a navigable navigated. The event contains the new URL. |
