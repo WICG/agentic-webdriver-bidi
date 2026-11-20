@@ -133,10 +133,14 @@ The user agent enforces the ACL:
 
 User agents may restrict some commands and events to be valid only in a `perNavigable` entry. Actuation commands are valid only in a `perNavigable` entry, because they are the signal for [actuation UI](#actuation-ui).
 
+Event subscriptions are independent of the ACL `events` list. The agent uses `session.subscribe` and `session.unsubscribe` as usual; events not allowed by the ACL are filtered out before they are emitted. See the [open questions](#open-questions) for subscriptions.
+
 The ACL does not control these commands and events. They are always available in a restricted session:
 
 - `session.status`
 - `session.end`
+- `session.subscribe`
+- `session.unsubscribe`
 - `session.setAcl`
 - `session.changed`
 
@@ -562,7 +566,7 @@ The cost is that the actuation UI depends on the agent: the agent must retract t
 3. **Shortcut for full access.** The ACL can support a short form that requests all origins, all commands, or all events.
 4. **Allowed set.** Which commands and events can an ACL of a restricted session contain? Should this be up to the user agent? Should we have a mechanism to advertise possible commands and events? Recommendation: `session.setAcl` returns the current effective ACL, which can be larger in scope than what the agent requests, so the agent can learn what is allowed by default in the user agent.
 5. **Entries for `perNavigable` only.** Which commands and events are valid only in a `perNavigable` entry? Recommendation: actuation commands are valid only in a `perNavigable` entry. For other commands and events, let the user agent decide.
-6. **Subscriptions.** How do the `events` list and `session.subscribe` interact? Recommendation: adding an event to the ACL subscribes to the event. Removing an event from the ACL unsubscribes.
+6. **Subscriptions.** Currently, `session.subscribe` and `session.unsubscribe` are independent of the ACL `events` list, and events not allowed by the ACL are filtered out before they are emitted. Proposal: adding an event to the ACL subscribes to it, and removing an event from the ACL unsubscribes from it. Downside: the effective ACL can include user-agent-default events that the agent never asked for, so the agent would receive events it did not want.
 7. **Errors.** Which error code does a command return when the ACL denies it, or when the session is in the paused state?
 8. **Prompt frequency.** Which permissions can a user agent grant without a user prompt? We think this should be left to the user agent's discretion.
 9. **Denial reason format.** Is one free-text `reason` sufficient? Alternatives are a machine-readable code, or one reason for each denied entry.
