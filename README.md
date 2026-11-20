@@ -704,8 +704,7 @@ browser.action.onClicked.addListener(async (tab) => {
 ### Open questions for transports
 
 1. **Extension permission.** Which manifest permission gives access to `browser.driver`?
-2. **Reverse mapping.** Is a method necessary to resolve a navigable id to a tab id?
-3. **Service worker lifetime.** Does an open `browser.driver.connect()` port keep a Manifest V3 service worker alive (like `runtime.connectNative()`) while a session is paused or waiting?
+2. **Service worker lifetime.** Does an open `browser.driver.connect()` port keep a Manifest V3 service worker alive (like `runtime.connectNative()`) while a session is paused or waiting?
 
 ## Roadmap
 
