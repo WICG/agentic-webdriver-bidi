@@ -405,13 +405,13 @@ Commands that change navigables:
 | `input.performActions` | Command | Existing, extension planned | Sends trusted keyboard, pointer, and wheel actions to a navigable. |
 | `input.releaseActions` | Command | Existing | Releases all keys and pointer buttons that are in the pressed state in a navigable. |
 
-`input.performActions` does not tell the agent the result of an action. The agent needs this feedback:
+`input.performActions` does not tell the agent the result of an action ([#5](https://github.com/WICG/agentic-webdriver-bidi/issues/5)). The agent needs this feedback:
 
 - The position of a click and the element that the click hit.
 - The distance of a scroll and the position of the viewport on the page after the scroll.
 - The text that an input field received.
 
-We must extend `input.performActions` to send this feedback as an event, or add new commands that return this data.
+We must extend `input.performActions` to return this feedback in the command result or as an event, or add new commands that return this data.
 
 ### Actuation UI
 
