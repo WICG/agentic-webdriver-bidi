@@ -3,7 +3,7 @@
 > [!NOTE]
 > This document is a part of the [Agentic extensions for WebDriver BiDi](../README.md#introduction) proposal. The proposal is in incubation. All names and data shapes can change.
 
-An access control list (ACL) contains the permissions of a [restricted session](restricted-sessions.md). This document describes the ACL format, the `session.setAcl` command, and the actuation UI that the ACL controls.
+An access control list (ACL) defines the access of a [restricted session](restricted-sessions.md). This document describes the ACL format, the `session.setAcl` command, and the actuation UI that the ACL controls.
 
 The user agent sends the [`session.changed`](restricted-sessions.md#sessionchanged) event when the user or the user agent changes the ACL.
 
@@ -11,8 +11,8 @@ The user agent sends the [`session.changed`](restricted-sessions.md#sessionchang
 
 The ACL has two parts:
 
-- `default` contains the permissions of the full session, for all navigables.
-- `perNavigable` contains more permissions for specific navigables. Each entry extends the `default` configuration. It does not replace it.
+- `default` defines the access of the full session, for all navigables.
+- `perNavigable` adds more access for specific navigables. Each entry extends the `default` configuration. It does not replace it.
 
 Access control is a property of the session. The ACL does not need an entry for each navigable. If a navigable has no `perNavigable` entry, the session has only the `default` access in that navigable (see [#36](https://github.com/WICG/agentic-webdriver-bidi/issues/36) for descendant subframes). An empty entry has the same effect as no entry. The agent requests access in a specific navigable only if the session needs access that `default` does not include:
 
@@ -65,27 +65,27 @@ The ACL does not control these commands and events. They are always available in
 
 ## `session.setAcl`
 
-The agent sends `session.setAcl` to change the ACL of the session. This command is the only method to get permissions. There are two uses:
+The agent sends `session.setAcl` to change the ACL of the session. This command is the only method to get access. There are two uses:
 
-- **Request permissions.** The agent can provide a `reason`. The user or the user agent can grant or deny the request.
-- **Retract permissions.** For example, the agent removes the permissions for a navigable after it completes an interaction.
+- **Request access.** The agent can provide a `reason`. The user or the user agent can grant or deny the request.
+- **Retract access.** For example, the agent removes the access to a navigable after it completes an interaction.
 
 The command accepts two parameters:
 
 - `acl`: the full ACL that the agent requests for the session.
-- `reason`: an optional text from the agent that explains the request. The user agent may deny a permission request without a `reason`.
+- `reason`: an optional text from the agent that explains the request. The user agent may deny a access request without a `reason`.
 
 The result contains two fields:
 
-- `acl`: the effective ACL of the session after the change. It can be smaller than the requested ACL (if permissions were denied) or larger (if the user agent grants default permissions). User-agent-default permissions remain in the effective ACL even if omitted from a subsequent `session.setAcl` call.
-- `denied`: the permissions that the user agent denied. The user agent omits this field if it granted the full request.
+- `acl`: the effective ACL of the session after the change. It can be smaller than the requested ACL (if the user agent denied access) or larger (if the user agent grants default access). User-agent-default access remains in the effective ACL even if omitted from a subsequent `session.setAcl` call.
+- `denied`: the access that the user agent denied. The user agent omits this field if it granted the full request.
 
 The `denied` field contains two fields:
 
 - `acl`: the denied origins, commands, and events, in the ACL format.
 - `reason`: an optional text from the user agent that explains the denial. The agent can use it to select a different approach.
 
-We expect agents to request permissions only when necessary, and to retract them after use. This is especially important for actuation commands, because they control the [actuation UI](#actuation-ui).
+We expect agents to request access only when necessary, and to retract it after use. This is especially important for actuation commands, because they control the [actuation UI](#actuation-ui).
 
 ### Ordering of concurrent calls
 
@@ -97,7 +97,7 @@ We expect agents to request permissions only when necessary, and to retract them
 
 ### Example: first request
 
-The agent requests its first permissions after `session.new`.
+The agent requests access for the first time after `session.new`.
 
 Request:
 
@@ -143,9 +143,9 @@ Response. The user agent grants the full request:
 }
 ```
 
-### Example: more permissions for one navigable
+### Example: more access for one navigable
 
-The agent requests more permissions for navigable `A1B2C3`.
+The agent requests more access to navigable `A1B2C3`.
 
 Request:
 
@@ -227,9 +227,9 @@ User agents are encouraged to show dedicated UI while an agent actuates a naviga
 The ACL is the signal for this UI. A navigable is an actuated navigable while its `perNavigable` entry in the effective ACL contains at least one actuation command. Thus:
 
 - The actuation starts when `session.setAcl` grants an actuation command for the navigable.
-- The actuation ends when the effective ACL no longer contains an actuation command for the navigable. This occurs when the agent retracts the permissions with `session.setAcl`, or when the user or the user agent revokes them. It also occurs when the navigable closes (see [#37](https://github.com/WICG/agentic-webdriver-bidi/issues/37)) or the session ends.
+- The actuation ends when the effective ACL no longer contains an actuation command for the navigable. This occurs when the agent retracts the access with `session.setAcl`, or when the user or the user agent revokes it. It also occurs when the navigable closes (see [#37](https://github.com/WICG/agentic-webdriver-bidi/issues/37)) or the session ends.
 
-The actuation continues across navigations in the navigable, and across commands that are not actuation commands. The agent can request permissions for more than one navigable at the same time. Each of these navigables is an actuated navigable.
+The actuation continues across navigations in the navigable, and across commands that are not actuation commands. The agent can request access to more than one navigable at the same time. Each of these navigables is an actuated navigable.
 
 Actuation commands are valid only in a `perNavigable` entry. If an agent requests an actuation command in the `default` part of the ACL, the user agent denies it. Thus the user agent always knows which navigables the agent can actuate.
 
@@ -250,7 +250,7 @@ An agent that only observes a navigable does not cause actuation UI. For example
 
 When the user clicks the stop button, the user agent pauses the session and sends [`session.changed`](restricted-sessions.md#sessionchanged) with `paused: true`. The user agent can also revoke the actuation commands from the ACL.
 
-The agent must retract the actuation commands for a navigable when it completes the actuation. Otherwise the user agent continues to show the actuation UI. The protocol cannot enforce this. The user agent can revoke permissions at any time, for example after a period of inactivity (see [#34](https://github.com/WICG/agentic-webdriver-bidi/issues/34)), and send `session.changed`.
+The agent must retract the actuation commands for a navigable when it completes the actuation. Otherwise the user agent continues to show the actuation UI. The protocol cannot enforce this. The user agent can revoke access at any time, for example after a period of inactivity (see [#34](https://github.com/WICG/agentic-webdriver-bidi/issues/34)), and send `session.changed`.
 
 In this example, the agent completes its task on navigable `A1B2C3`. It retracts the `perNavigable` entry, and the user agent removes the actuation UI:
 
@@ -280,26 +280,26 @@ In this example, the agent completes its task on navigable `A1B2C3`. It retracts
 
 Events can expose page data, for example console messages or URLs of navigations. Thus the ACL controls events as well as commands. Separate lists let the agent request an event without a related command.
 
-### Default and per-navigable permissions
+### Default and per-navigable access
 
-Most tasks operate on one tab or a small number of tabs. The `perNavigable` part lets the user grant more permissions for one tab only. The agent can continue to use the `default` permissions for other tabs. Additionally, user agent needs to know which tabs are being controlled by the agent.
+Most tasks operate on one tab or a small number of tabs. The `perNavigable` part lets the user grant more access for one tab only. The agent can continue to use the `default` access for other tabs. Additionally, user agent needs to know which tabs are being controlled by the agent.
 
 ### The ACL is the signal for actuation UI
 
 The user agent must know when to show actuation UI. If the user agent finds this out from the commands that it receives, the UI is not reliable. For example, it can show the UI after an `input.performActions` command and remove it after a timeout. Then the UI shows after the first action, not before it. The UI can also flicker between two actions of one task.
 
-The per-navigable ACL does not have these problems. The agent requests actuation commands for a navigable before the first action, and retracts them when the task is complete. The actuation continues across more than one `session.setAcl` call, and across commands that are not actuation commands. Thus the user agent can show the UI before the first action and keep it until the agent retracts the permissions.
+The per-navigable ACL does not have these problems. The agent requests actuation commands for a navigable before the first action, and retracts them when the task is complete. The actuation continues across more than one `session.setAcl` call, and across commands that are not actuation commands. Thus the user agent can show the UI before the first action and keep it until the agent retracts the access.
 
 This design does not add commands to the protocol. The ACL already contains the necessary information.
 
-The cost is that the actuation UI depends on the agent: the agent must retract the actuation commands after use. The protocol cannot enforce this, but the user agent can revoke permissions at any time.
+The cost is that the actuation UI depends on the agent: the agent must retract the actuation commands after use. The protocol cannot enforce this, but the user agent can revoke access at any time.
 
 ## Considered alternatives
 
 ### Generic access control with allowlists and denylists
 
-A more general capability can contain allowlists and denylists for modules, commands, events, and parameters. This alternative has more flexibility, but it is more complex to specify and to show to a user. This proposal uses allowlists only, and it adds origins, per-navigable scope, and in-protocol permission requests.
+A more general capability can contain allowlists and denylists for modules, commands, events, and parameters. This alternative has more flexibility, but it is more complex to specify and to show to a user. This proposal uses allowlists only, and it adds origins, per-navigable scope, and in-protocol access requests.
 
 ### ACL in `session.new`
 
-An earlier version of this document accepted an ACL as a capability in `session.new`. The result contained the granted ACL. We replaced this design because it made two methods to request permissions. The request in `session.new` also had no `reason` parameter, and a user prompt could delay session creation.
+An earlier version of this document accepted an ACL as a capability in `session.new`. The result contained the granted ACL. We replaced this design because it made two methods to request access. The request in `session.new` also had no `reason` parameter, and a user prompt could delay session creation.

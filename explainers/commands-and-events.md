@@ -16,7 +16,7 @@ Session commands and events:
 | `session.end` | Command | Existing | Ends the current session. |
 | `session.subscribe` | Command | Existing | Subscribes to any events. The user agent emits only events allowed by the ACL. |
 | `session.unsubscribe` | Command | Existing | Unsubscribes from events. |
-| [`session.setAcl`](acl.md#sessionsetacl) | Command | New | Requests or retracts permissions. The parameters are `acl` and an optional `reason`. The result contains the granted and denied permissions. |
+| [`session.setAcl`](acl.md#sessionsetacl) | Command | New | Requests or retracts access. The parameters are `acl` and an optional `reason`. The result contains the granted and denied access. |
 | [`session.changed`](restricted-sessions.md#sessionchanged) | Event | New | Tells the agent that the user or the user agent paused, resumed, or reconfigured the session. The fields include `acl` and `paused`. |
 
 Commands and events that observe navigables:
@@ -24,7 +24,7 @@ Commands and events that observe navigables:
 | Name | Type | Status | Description |
 | :--- | :--- | :--- | :--- |
 | `browsingContext.getTree` | Command | Existing | Returns the tree of navigables whose origins are allowed by the ACL. Navigables with disallowed origins are omitted. |
-| `browsingContext.captureScreenshot` | Command | Existing | Returns a screenshot of a navigable. The user agent redacts the screenshot in accordance with the origin permissions. |
+| `browsingContext.captureScreenshot` | Command | Existing | Returns a screenshot of a navigable. The user agent redacts the screenshot in accordance with the origins in the ACL. |
 | `browsingContext.locateNodes` | Command | Existing, extended | Finds DOM elements by locator. The extension adds a locator for an `x`, `y` position and return sharedIds. |
 | `log.entryAdded` | Event | Existing | Contains a console message or uncaught JavaScript error from a navigable, if allowed by the user agent. |
 | `browsingContext.userPromptOpened` | Event | Existing | Tells the agent that a navigable opened a JavaScript dialog. |
@@ -39,7 +39,7 @@ Commands that change navigables:
 
 | Name | Type | Status | Description |
 | :--- | :--- | :--- | :--- |
-| `browsingContext.create` | Command | Existing | Creates a navigable. This command is not an actuation command, because the agent cannot actuate the new navigable without explicit permission. |
+| `browsingContext.create` | Command | Existing | Creates a navigable. This command is not an actuation command, because the agent cannot actuate the new navigable without explicit access. |
 | `browsingContext.close` | Command | Existing | Closes a navigable. |
 | `browsingContext.navigate` | Command | Existing | Navigates a navigable. |
 | `browsingContext.reload` | Command | Existing | Reloads a navigable. |

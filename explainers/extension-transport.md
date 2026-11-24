@@ -79,7 +79,7 @@ The extension can use the tab id in extension APIs, for example to find the tab 
 
 ## Example: an extension starts a restricted session
 
-In this example, the user clicks the extension action on a tab. The extension opens a connection and starts a restricted session. Then it requests permission to read the top-level navigable in that tab.
+In this example, the user clicks the extension action on a tab. The extension opens a connection and starts a restricted session. Then it requests access to read the top-level navigable in that tab.
 
 ```js
 browser.action.onClicked.addListener(async (tab) => {
