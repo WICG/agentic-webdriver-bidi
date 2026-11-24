@@ -53,7 +53,7 @@ The workflows show how the current proposal can complete each task. They are ill
 2. The agent requests access to the two origins with `session.setAcl`. The user or the user agent grants the request.
 3. The agent reads the price on shop-a.example.
 4. The user revokes the access to `https://shop-b.example` in the user agent UI.
-5. The agent receives `session.changed` with the updated ACL. The connection and stays open.
+5. The agent receives `session.changed` with the updated ACL. The connection stays open and the session remains running.
 6. The agent no longer sends commands for shop-b.example. The user agent rejects such commands.
 7. The agent reports the price from shop-a.example and tells the user that the comparison is not complete.
 8. When the task is complete, the agent sends `session.end`. The user agent ends the session and removes all access.
