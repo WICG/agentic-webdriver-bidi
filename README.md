@@ -12,10 +12,11 @@
 
 ## Explainers
 
-The proposal has four documents:
+The proposal has five documents:
 
 | Document | Content |
 | :--- | :--- |
+| [Use cases](explainers/use-cases.md) | The user tasks and the agent workflows that the proposal supports. |
 | [Restricted sessions](explainers/restricted-sessions.md) | The session model: terminology, `session.new`, `session.changed`, a full session example, design decisions, and security considerations. |
 | [Commands and events](explainers/commands-and-events.md) | The list of commands and events that a restricted session supports. |
 | [Access control lists](explainers/acl.md) | The ACL format, `session.setAcl`, enforcement, and actuation UI. |
@@ -57,14 +58,7 @@ The ACL also tells the user agent which navigables the agent actuates. A navigab
 
 ## Use cases
 
-1. A restricted session can use only the operations that the user or the user agent allowed.
-2. The user interrupts an active session. The agent receives a notification and adapts.
-3. The user revokes access or pauses the session. The session loses the related capabilities immediately, but the connection stays open.
-4. The agent requests more capabilities during a session. The user or the user agent makes the decision, and the agent receives the result.
-5. The user sees which navigables the agent can actuate. The agent can observe a navigable without actuation UI, for example to read the page in a tab that the user opened.
-6. The user stops the agent with one action, for example a stop button. The agent receives a notification.
-
-The [original proposal](https://github.com/WICG/proposals/issues/320) contains more use cases: structured page content, feedback on input, and access to user profile data. They are in scope.
+The [use cases](explainers/use-cases.md) document describes each use case as a user task and the agent workflow that completes the task.
 
 ## Open questions
 
