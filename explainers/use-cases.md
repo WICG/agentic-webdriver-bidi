@@ -106,3 +106,4 @@ The use cases do not describe a protocol design. These documents describe how th
 - The agent fills out the form. Then, the agent UI asks the user to confirm the submission.
 - The user confirms the submission in the agent UI. The agent then submits the form with WebDriver BiDi input commands.
 - WebDriver BiDi cannot know if an input command causes a form submission or a different state change in the site backend. Thus, the agent decides when to ask the user for confirmation.
+    - For specific cases, where the browser knows that a state change is going to happen, the user agent may as for a confirmation in the browser UI.
