@@ -16,7 +16,7 @@ The proposal has five documents:
 
 | Document | Content |
 | :--- | :--- |
-| [Use cases](explainers/use-cases.md) | The user tasks and the agent workflows that the proposal supports. |
+| [Use cases](explainers/use-cases.md) | The user tasks that the proposal supports and the behavior that the user expects. |
 | [Restricted sessions](explainers/restricted-sessions.md) | The session model: terminology, `session.new`, `session.changed`, a full session example, design decisions, and security considerations. |
 | [Commands and events](explainers/commands-and-events.md) | The list of commands and events that a restricted session supports. |
 | [Access control lists](explainers/acl.md) | The ACL format, `session.setAcl`, enforcement, and actuation UI. |
@@ -58,7 +58,7 @@ The ACL also tells the user agent which navigables the agent actuates. A navigab
 
 ## Use cases
 
-The [use cases](explainers/use-cases.md) document describes each use case as a user task and the agent workflow that completes the task.
+The [use cases](explainers/use-cases.md) document describes each use case as a user task and the behavior that the user expects.
 
 ## Open questions
 
