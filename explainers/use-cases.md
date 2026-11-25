@@ -95,3 +95,14 @@ The use cases do not describe a protocol design. These documents describe how th
 - The agent knows which tab the user added and which access it has there.
 - The agent has no access to the other tabs of the user.
 - If the task needs more access, for example a different site or tab, the agent can ask for it (U4).
+
+## U8. The user confirms the submission of a form that the agent filled out
+
+**User task:** "Fill out this long form, but ask me to review it before you submit it."
+
+**Expected behavior:**
+
+- The user grants the agent input access to the site and the tab of the form.
+- The agent fills out the form. Then, the agent UI asks the user to confirm the submission.
+- The user confirms the submission in the agent UI. The agent then submits the form with WebDriver BiDi input commands.
+- WebDriver BiDi cannot know if an input command causes a form submission or a different state change in the site backend. Thus, the agent decides when to ask the user for confirmation.
