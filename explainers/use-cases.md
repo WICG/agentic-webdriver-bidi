@@ -23,7 +23,8 @@ The use cases do not describe a protocol design. These documents describe how th
 - The agent asks for access to shop.example and to the tab that it intends to use. It gives a reason.
 - The user or the user agent makes the decision on the access request.
 - The agent can use only the access that it received. It cannot read or change other sites or other tabs.
-- The access of the agent ends when the task is complete.
+- The agent decides when the task is complete. It then tells the user and retracts its access.
+- The user agent does not rely on the agent to retract the access. The user or the user agent can revoke the access at any time.
 
 ## U2. The user interrupts the agent and changes the page
 
