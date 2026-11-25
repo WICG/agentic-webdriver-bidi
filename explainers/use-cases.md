@@ -22,11 +22,12 @@ The workflows show how the current proposal can complete each task. They are ill
 **Agent workflow:**
 
 1. The agent starts a restricted session with `session.new`. The session has no access beyond the user-agent defaults.
-2. The agent sends `session.setAcl`. The request contains the `https://shop.example` origin, the necessary commands and events, and a reason.
-3. The user or the user agent grants the request. The agent receives the effective ACL.
-4. The agent searches the shop. The user agent rejects each operation that is not in the ACL, for example a command for a different origin.
-5. The agent reports the result to the user.
-6. When the task is complete, the agent sends `session.end`. The user agent ends the session and removes all access.
+2. The agent creates a new tab or selects an existing tab. It uses `browsingContext.create` (`about:blank`) and `browsingContext.getTree`, which are available by default.
+3. The agent sends `session.setAcl`. The request contains the `https://shop.example` origin, the necessary commands and events, the navigable that the agent intends to use, and a reason.
+4. The user or the user agent grants the request. The agent receives the effective ACL.
+5. The agent searches the shop. The user agent rejects each operation that is not in the ACL, for example a command for a different origin.
+6. The agent reports the result to the user.
+7. When the task is complete, the agent sends `session.end`. The user agent ends the session and removes all access.
 
 ## U2. The user interrupts the agent and changes the page
 
@@ -35,13 +36,15 @@ The workflows show how the current proposal can complete each task. They are ill
 **Agent workflow:**
 
 1. The agent starts a restricted session with `session.new`. The session has no access beyond the user-agent defaults.
-2. The agent requests access to `https://restaurant.example` with `session.setAcl`. The user or the user agent grants the request.
-3. The agent fills in the booking form.
-4. The user pauses the session. The agent receives `session.changed` with `paused: true`.
-5. The agent stops sending commands. The user changes the time in the form.
-6. The user resumes the session. The agent receives `session.changed` with `paused: false`.
-7. The agent reads the page again and completes the booking from the new page state.
-8. When the task is complete, the agent sends `session.end`. The user agent ends the session and removes all access.
+2. The agent creates a new tab or selects an existing tab. It uses `browsingContext.create` (`about:blank`) and `browsingContext.getTree`, which are available by default.
+3. The agent sends `session.setAcl`. The request contains the `https://restaurant.example` origin, the necessary commands and events, the navigable that the agent intends to use, and a reason.
+4. The user or the user agent grants the request. The agent receives the effective ACL.
+5. The agent fills in the booking form.
+6. The user pauses the session. The agent receives `session.changed` with `paused: true`.
+7. The agent stops sending commands. The user changes the time in the form.
+8. The user resumes the session. The agent receives `session.changed` with `paused: false`.
+9. The agent reads the page again and completes the booking from the new page state.
+10. When the task is complete, the agent sends `session.end`. The user agent ends the session and removes all access.
 
 ## U3. The user revokes access during the task
 
@@ -50,13 +53,16 @@ The workflows show how the current proposal can complete each task. They are ill
 **Agent workflow:**
 
 1. The agent starts a restricted session with `session.new`. The session has no access beyond the user-agent defaults.
-2. The agent requests access to the two origins with `session.setAcl`. The user or the user agent grants the request.
-3. The agent reads the price on shop-a.example.
-4. The user revokes the access to `https://shop-b.example` in the user agent UI.
-5. The agent receives `session.changed` with the updated ACL. The connection stays open and the session remains running.
-6. The agent no longer sends commands for shop-b.example. The user agent rejects such commands.
-7. The agent reports the price from shop-a.example and tells the user that the comparison is not complete.
-8. When the task is complete, the agent sends `session.end`. The user agent ends the session and removes all access.
+2. The agent creates or selects two tabs, one for each shop. It uses `browsingContext.create` (`about:blank`) and `browsingContext.getTree`, which are available by default.
+3. The agent sends `session.setAcl`. The request contains a per-navigable entry for each tab and a reason.
+4. Each entry contains the navigable of the tab, the origin of one shop, and the necessary commands and events.
+5. The user or the user agent grants the request. The agent receives the effective ACL.
+6. The agent reads the price in the shop-a.example tab.
+7. The user revokes the access to the shop-b.example tab in the user agent UI.
+8. The agent receives `session.changed`. The updated ACL has no entry for the shop-b.example tab. The connection stays open and the session remains running.
+9. The agent no longer sends commands for the shop-b.example tab. The user agent rejects such commands.
+10. The agent reports the price from shop-a.example and tells the user that the comparison is not complete.
+11. When the task is complete, the agent sends `session.end`. The user agent ends the session and removes all access.
 
 ## U4. The task needs more access than the agent has
 
@@ -65,15 +71,17 @@ The workflows show how the current proposal can complete each task. They are ill
 **Agent workflow:**
 
 1. The agent starts a restricted session with `session.new`. The session has no access beyond the user-agent defaults.
-2. The agent sends `session.setAcl`. The request contains the `https://travel.example` origin and input commands for the tab. The user grants the request.
-3. The agent clicks links on travel.example and finds a hotel.
-4. The reviews link goes to `https://reviews.example`. The ACL does not contain this origin, so commands for its documents fail.
-5. The agent sends `session.setAcl` and adds `https://reviews.example`. The reason says that the task needs the hotel reviews.
-6. The user or the user agent grants the request. The agent clicks the link and reads the reviews.
-7. The prices link goes to `https://booking.example`. The agent requests this origin in the same way.
-8. The user or the user agent denies the request. The agent receives the denied access and the reason for the denial.
-9. The agent does not use booking.example. It reports the hotel and the reviews, and tells the user that the prices are missing.
-10. When the task is complete, the agent sends `session.end`. The user agent ends the session and removes all access.
+2. The agent creates a new tab or selects an existing tab. It uses `browsingContext.create` (`about:blank`) and `browsingContext.getTree`, which are available by default.
+3. The agent sends `session.setAcl`. The request contains the `https://travel.example` origin, the necessary commands and events, the navigable that the agent intends to use, and a reason.
+4. The user or the user agent grants the request. The agent receives the effective ACL.
+5. The agent clicks links on travel.example and finds a hotel.
+6. The reviews link goes to `https://reviews.example`. The ACL does not contain this origin, so commands for its documents fail.
+7. The agent sends `session.setAcl` and adds `https://reviews.example`. The reason says that the task needs the hotel reviews.
+8. The user or the user agent grants the request. The agent clicks the link and reads the reviews.
+9. The prices link goes to `https://booking.example`. The agent requests this origin in the same way.
+10. The user or the user agent denies the request. The agent receives the denied access and the reason for the denial.
+11. The agent does not use booking.example. It reports the hotel and the reviews, and tells the user that the prices are missing.
+12. When the task is complete, the agent sends `session.end`. The user agent ends the session and removes all access.
 
 ## U5. The agent reads one tab and acts in a different tab
 
@@ -89,9 +97,11 @@ The workflows show how the current proposal can complete each task. They are ill
 6. The agent retracts the actuation commands with `session.setAcl`. The user agent removes the actuation UI.
 7. When the task is complete, the agent sends `session.end`. The user agent ends the session and removes all access.
 
-## U6. The user stops the agent with one action
+## U6. The user terminates the agent session with one action
 
 **User task:** "Unsubscribe me from the newsletters in mail.example." During the task, the user sees that the agent opens the wrong message.
+
+**Note:** This is slightly different from pausing as its intend to just stop the agent and abort agentic activitiy. It is basically implemented by closing WebDriver BiDi sessions.
 
 **Agent workflow:**
 
@@ -100,7 +110,7 @@ The workflows show how the current proposal can complete each task. They are ill
 3. The agent actuates the tab. The user agent shows actuation UI with a stop button.
 4. The user clicks the stop button. The user agent ends the WebDriver BiDi session and closes the connection.
 5. The user agent removes all access of the session and the actuation UI.
-6. The agent detects that the connection is closed. 
+6. The agent detects that the connection is closed.
 7. The agent reports the aborted steps to the user and can start a new session if needed.
 
 ## U7. The user adds a specific tab to the agent session
