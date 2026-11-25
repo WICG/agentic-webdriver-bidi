@@ -21,7 +21,7 @@ The use cases do not describe a protocol design. These documents describe how th
 
 - The agent starts with no access to the tabs and sites of the user.
 - The agent asks for access to shop.example and to the tab that it intends to use. It gives a reason.
-- The user or the user agent makes the decision.
+- The user or the user agent makes the decision on the access request.
 - The agent can use only the access that it received. It cannot read or change other sites or other tabs.
 - The access of the agent ends when the task is complete.
 
@@ -55,7 +55,7 @@ The use cases do not describe a protocol design. These documents describe how th
 **Expected behavior:**
 
 - The agent has access to travel.example in one tab only.
-- During the task, the agent finds links or clicks to reviews.example and booking.example. It has no access to these sites.
+- During the task, the agent finds or clicks links to reviews.example and booking.example. It has no access to these sites.
 - The agent can ask for access to each new site at the time of use. The request names the site and the tab, and gives a reason.
 - The user or the user agent grants or denies each request. In this example, it grants reviews.example and denies booking.example.
 - The agent knows the result of each request and the reason for a denial.
@@ -67,7 +67,7 @@ The use cases do not describe a protocol design. These documents describe how th
 
 **Expected behavior:**
 
-- The agent asks for access to the recipe tab and to the grocery.example tab. Each request names the site and the tab. The user agent might should different UI for tabs the agent can read and tabs the agent can actuate.
+- The agent asks for access to the recipe tab and to the grocery.example tab. Each request names the site and the tab. The user agent can show different UI for tabs that the agent can read and tabs that the agent can actuate.
 - The agent reads the recipe tab but does not act in it.
 - The agent acts in the grocery.example tab.
 - The user always sees in which tabs the agent can act.
