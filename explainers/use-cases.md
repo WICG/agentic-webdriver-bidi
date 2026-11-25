@@ -43,7 +43,7 @@ The use cases do not describe a protocol design. These documents describe how th
 **Expected behavior:**
 
 - The agent has previously gained access to two tabs, one for each shop, and to the site of each shop.
-- The user can revoke the access to the shop-b.example tab at any time. The agent loses that access immediately.
+- The user can revoke the access to the shop-b.example tab at any time. The agent loses that access immediately including inflight requests whenever possible.
 - The agent knows which access the user revoked.
 - The agent keeps its access to the shop-a.example tab and continues the task there.
 - The agent tells the user that the comparison is not complete.
