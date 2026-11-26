@@ -37,7 +37,7 @@ Cross-origin iframes are an exception. Embedded iframes are separate documents w
 
 The access control configuration must allow users and administrators to enforce the following restrictions:
 
-- **Block navigation to a specific origin.** Navigations to an agent-chosen origin can exfiltrate sensitive data from the agent context, for example through URL query parameters.
+- **Block navigation to origins that are not allowlisted.** Navigations to an agent-chosen origin can exfiltrate sensitive data from the agent context, for example through URL query parameters. The user agent blocks such navigations, including redirects, before it sends the request.
 - **Block all access to a specific origin.** The agent cannot read or act on documents from that origin.
 - **Block a specific browser-provided action globally.** The agent cannot invoke that action on any origin.
 - **Block a specific browser-provided action on a specific origin.** The agent can invoke that action on allowed origins, but not on restricted origins.
