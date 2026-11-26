@@ -42,6 +42,7 @@ The access control configuration must allow users and administrators to enforce 
 - **Block a specific browser-provided action globally.** The agent cannot invoke that action on any origin.
 - **Block a specific browser-provided action on origins that are not allowlisted for that action.** The agent can invoke that action on allowlisted origins, but not on other origins.
 - **Block tab takeover on origins that are not allowlisted.** The agent cannot take control of an existing tab that displays a document from an origin that is not allowlisted.
+- **Block observations or actuations on top-level traversables that are not allowlisted.** The agent cannot observe or actuate a top-level traversable (for example, a browser tab) unless that traversable is allowlisted for that access, even if it displays an allowlisted origin. This allows configuring observation-only access or both observation and actuation per traversable.
 
 ## Related use cases
 
