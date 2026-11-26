@@ -96,8 +96,8 @@ The use cases do not describe a protocol design. These documents describe how th
 **Expected behavior:**
 
 - The user can terminate the agent session with one action, for example a stop button.
-- The agent loses all access immediately.
-- This is different from a pause (U2). The agent cannot resume the session.
+- The agent loses all access immediately, including inflight requests whenever possible.
+- This is different from a pause (U2): the agent session terminates.
 - The agent knows that the user terminated the session. It can tell the user which steps it did not complete.
 - A new session starts with no access.
 
