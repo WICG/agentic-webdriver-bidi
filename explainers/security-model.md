@@ -29,9 +29,9 @@ Users and enterprise administrators must be able to configure agent access contr
 
 ### Focus on top-level page origins
 
-Top-level pages often depend on cross-origin subresources, such as images, stylesheets, and APIs, to function. The Same-Origin Policy isolates these subresources from the top-level origin. Therefore, the ACL does not need to list subresource origins, provided the session does not allow arbitrary script execution.
+Top-level pages often depend on cross-origin subresources, such as images, stylesheets, and APIs, to function. In normal browsing, web-platform boundaries (such as the Same-Origin Policy, CORS, and `SameSite` cookies) already govern what an allowed top-level document can embed or read from cross-origin subresources, even though rendered subresources such as images appear in screenshots. Therefore, the ACL does not need to list subresource origins loaded by the page itself, provided the session cannot execute arbitrary agent-authored script that initiates outbound subresource requests to unlisted origins (see [#45](https://github.com/WICG/agentic-webdriver-bidi/issues/45)).
 
-Cross-origin iframes are an exception. User-like actions, such as clicks, can target an embedded iframe, and screenshots can capture its contents. The user agent must enforce origin restrictions on cross-origin iframes as well (see [#36](https://github.com/WICG/agentic-webdriver-bidi/issues/36)).
+Cross-origin iframes are an exception. Embedded iframes are separate documents with their own origin boundary: user-like actions, such as clicks, can act directly on a cross-origin iframe, and screenshots can capture cross-origin iframe documents that the top-level page itself cannot inspect. The user agent must enforce origin restrictions on cross-origin iframes as well (see [#36](https://github.com/WICG/agentic-webdriver-bidi/issues/36) and [#50](https://github.com/WICG/agentic-webdriver-bidi/issues/50)).
 
 ## Required configuration capabilities
 
