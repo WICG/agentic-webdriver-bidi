@@ -108,3 +108,18 @@ The use cases do not describe a protocol design. These documents describe how th
 - The user confirms the submission in the agent UI. The agent then submits the form with WebDriver BiDi input commands.
 - WebDriver BiDi cannot know if an input command causes a form submission or a different state change in the site backend. Thus, the agent decides when to ask the user for confirmation.
     - For specific cases, where the browser knows that a state change is going to happen, the user agent may as for a confirmation in the browser UI.
+
+## U9. The user completes part of a task manually instead of granting access
+
+**User task:** "Buy the running shoes in my cart on shop.example and save the order number." During checkout, the site redirects to pay.example. The user does not want to grant the agent access to pay.example. Instead, the user wants to complete the payment manually without leaving the browser.
+
+**Expected behavior:**
+
+- The agent has access to shop.example in the tab. It starts checkout on shop.example.
+- The site redirects the tab to pay.example, where the agent has no access.
+- The agent asks for access to pay.example to complete the payment.
+- The user denies the access request and pauses the agent session to take over ([U2](#u2-the-user-interrupts-the-agent-and-changes-the-page)).
+- The agent knows that the user denied the request and paused the session. It cannot read or act on pay.example.
+- The user completes the payment manually in the same tab without leaving the browser.
+- After payment, the tab returns to shop.example, and the user resumes the agent.
+- The agent continues the task on shop.example from the current state of the tab. It reads the order number and uses only the access that it has.
