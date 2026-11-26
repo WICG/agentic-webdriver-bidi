@@ -9,19 +9,19 @@ This document describes the security model for agentic browsing in [restricted s
 
 ### Constrain what the agent can see and do
 
-The user agent must constrain what the agent can see and what it can do. An agent can transfer data and trigger actions across all origins that it can access through its context window. This capability bypasses the Same-Origin Policy of the web platform. Therefore, the configuration must explicitly list the origins that connect to the agent context.
+The user agent must constrain what the agent can observe and what it can actuate. An agent can transfer data and trigger actions across all security origins that it can access through its context window. This capability bypasses the Same-Origin Policy of the web platform. Therefore, the user agent restricts observations and actuations by security origin and by top-level traversable.
 
 ### Origin-level isolation
 
-The web platform isolates distinct origins from each other by default. Users, enterprise administrators, and agent providers must be able to protect any origin from the agent with origin-level [access control lists (ACLs)](acl.md) (see [#49](https://github.com/WICG/agentic-webdriver-bidi/issues/49) on site-level scoping and opaque origins).
+The web platform isolates distinct security origins from each other by default. Users, enterprise administrators, and agent providers must be able to restrict agent observations and actuations for any security origin (see [#49](https://github.com/WICG/agentic-webdriver-bidi/issues/49) on site-level scoping and opaque origins).
 
 ### Least privilege by default
 
-A restricted session starts with no access beyond user-agent defaults. If the configuration does not list an origin and the user-agent defaults do not allow it, the user agent blocks all actions for that origin.
+A restricted session starts with no access beyond user-agent defaults. If neither the configuration nor user-agent defaults allow a security origin and top-level traversable, the user agent blocks all observations and actuations.
 
 ### Shared data boundary across controlled tabs
 
-All tabs under the control of an agent share the same data-access boundary. The agent can transfer data from one tab to another through its context window. Therefore, enforcing different ACLs on different tabs does not prevent cross-tab data leaks. Per-tab ACLs still limit which actions the agent can run in each tab (see [U5](use-cases.md#u5-the-agent-reads-one-tab-and-acts-in-a-different-tab)). The agent can access a tab only if both the tab and the origin of its document are allowed.
+All top-level traversables (for example, browser tabs) under the control of an agent share the same data-access boundary. The agent can transfer data from one top-level traversable to another through its context window. Therefore, enforcing different access rules on different top-level traversables does not prevent cross-tab data leaks. Per-traversable restrictions still limit which observations and actuations the agent can perform in each top-level traversable (see [U5](use-cases.md#u5-the-agent-reads-one-tab-and-acts-in-a-different-tab)). The user agent allows an observation or actuation only if both the top-level traversable and the security origin of the target document are allowed.
 
 ### User and enterprise configurability
 
@@ -29,7 +29,7 @@ Users and enterprise administrators must be able to configure agent access contr
 
 ### Focus on top-level page origins
 
-Top-level pages often depend on cross-origin subresources, such as images, stylesheets, and APIs, to function. In normal browsing, web-platform boundaries (such as the Same-Origin Policy, CORS, and `SameSite` cookies) already govern what an allowed top-level document can embed or read from cross-origin subresources, even though rendered subresources such as images appear in screenshots. Therefore, the ACL does not need to list subresource origins loaded by the page itself, provided the session cannot execute arbitrary agent-authored script that initiates outbound subresource requests to unlisted origins (see [#45](https://github.com/WICG/agentic-webdriver-bidi/issues/45)).
+Top-level pages often depend on cross-origin subresources, such as images, stylesheets, and APIs, to function. In normal browsing, web-platform boundaries (such as the Same-Origin Policy, CORS, and `SameSite` cookies) already govern what an allowed top-level document can embed or read from cross-origin subresources, even though rendered subresources such as images appear in screenshots. Therefore, the access control configuration does not need to list subresource origins loaded by the page itself, provided the session cannot execute arbitrary agent-authored script that initiates outbound subresource requests to unlisted origins (see [#45](https://github.com/WICG/agentic-webdriver-bidi/issues/45)).
 
 Cross-origin iframes are an exception. Embedded iframes are separate documents with their own origin boundary: user-like actions, such as clicks, can act directly on a cross-origin iframe, and screenshots can capture cross-origin iframe documents that the top-level page itself cannot inspect. The user agent must enforce origin restrictions on cross-origin iframes as well (see [#36](https://github.com/WICG/agentic-webdriver-bidi/issues/36) and [#50](https://github.com/WICG/agentic-webdriver-bidi/issues/50)).
 
