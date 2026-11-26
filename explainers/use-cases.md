@@ -51,13 +51,28 @@ The use cases do not describe a protocol design. These documents describe how th
 
 ## U4. The task needs more access than the agent has
 
+### U4.1. The task needs access to a new tab on an allowed site
+
+**User task:** "Compare two hotels in Berlin for the weekend on travel.example."
+
+**Expected behavior:**
+
+- The agent has access to travel.example in one tab only.
+- During the task, clicking a hotel listing opens a second hotel page in a new tab on travel.example. The agent has no access to the new tab.
+- The agent can ask for access to the new tab at the time of use. The request names the site and the tab, and gives a reason.
+- The user or the user agent grants or denies the request.
+- The agent knows the result of the request and the reason for a denial.
+- If the user or the user agent grants the request, the agent compares both tabs. After a denial, the agent continues with the first tab and tells the user that the comparison is not complete.
+
+### U4.2. The task needs access to a new site in the same tab
+
 **User task:** "Find a hotel in Berlin for the weekend on travel.example and tell me about its reviews and prices."
 
 **Expected behavior:**
 
 - The agent has access to travel.example in one tab only.
-- During the task, the agent finds or clicks links to reviews.example and booking.example. It has no access to these sites.
-- The agent can ask for access to each new site at the time of use. The request names the site and the tab, and gives a reason.
+- During the task, the agent clicks links in that same tab to reviews.example and booking.example. It has no access to these sites.
+- The agent can ask for access to each new site in that tab at the time of use. The request names the site and the tab, and gives a reason.
 - The user or the user agent grants or denies each request. In this example, it grants reviews.example and denies booking.example.
 - The agent knows the result of each request and the reason for a denial.
 - After a denial, the agent continues with the access that it has. It tells the user that the prices are missing.
