@@ -13,7 +13,7 @@ The user agent must constrain what the agent can see and what it can do. An agen
 
 ### Origin-level isolation
 
-The web platform isolates distinct origins from each other by default. Users, enterprise administrators, and agent providers must be able to protect any origin from the agent with origin-level [access control lists (ACLs)](acl.md).
+The web platform isolates distinct origins from each other by default. Users, enterprise administrators, and agent providers must be able to protect any origin from the agent with origin-level [access control lists (ACLs)](acl.md) (see [#49](https://github.com/WICG/agentic-webdriver-bidi/issues/49) on site-level scoping and opaque origins).
 
 ### Least privilege by default
 
