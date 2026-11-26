@@ -17,7 +17,7 @@ The web platform isolates distinct origins from each other by default. Users, en
 
 ### Least privilege by default
 
-A restricted session starts with no access beyond user-agent defaults. If the configuration does not list an origin and defines no fallback policy, the user agent blocks all access to that origin.
+A restricted session starts with no access beyond user-agent defaults. If the configuration does not list an origin and the user-agent defaults do not allow it, the user agent blocks all actions for that origin.
 
 ### Shared data boundary across controlled tabs
 
