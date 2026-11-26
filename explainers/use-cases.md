@@ -33,7 +33,7 @@ The use cases do not describe a protocol design. These documents describe how th
 **Expected behavior:**
 
 - The user can pause the agent at any time.
-- The agent knows that the user paused it. It does not act on the page during the pause.
+- The agent knows that the user paused it. The user agent does not let the agent act on the page during the pause.
 - The user changes the time in the form and resumes the agent.
 - The agent knows that the user resumed it. It continues the task from the current state of the page.
 
