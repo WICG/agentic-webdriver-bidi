@@ -21,7 +21,7 @@ A restricted session starts with no access beyond user-agent defaults. If the co
 
 ### Shared data boundary across controlled tabs
 
-All tabs under the control of an agent share the same data-access boundary. The agent can transfer data from one tab to another through its context window. Therefore, enforcing different ACLs on different tabs does not prevent cross-tab data leaks. Per-tab ACLs still limit which actions the agent can run in each tab (see [U5](use-cases.md#u5-the-agent-reads-one-tab-and-acts-in-a-different-tab)).
+All tabs under the control of an agent share the same data-access boundary. The agent can transfer data from one tab to another through its context window. Therefore, enforcing different ACLs on different tabs does not prevent cross-tab data leaks. Per-tab ACLs still limit which actions the agent can run in each tab (see [U5](use-cases.md#u5-the-agent-reads-one-tab-and-acts-in-a-different-tab)). The agent can access a tab only if both the tab and the origin of its document are allowed.
 
 ### User and enterprise configurability
 
