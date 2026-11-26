@@ -83,7 +83,7 @@ The use cases do not describe a protocol design. These documents describe how th
 
 **Expected behavior:**
 
-- The agent asks for access to the recipe tab and to the grocery.example tab. Each request names the site and the tab. The user agent can show different UI for tabs that the agent can read and tabs that the agent can actuate.
+- The agent asks for access to the recipe tab and to the grocery.example tab. Each request names the site and the tab. The user agent can show different UI for tabs that the agent can read and tabs in which the agent can act.
 - The agent reads the recipe tab but does not act in it.
 - The agent acts in the grocery.example tab.
 - The user always sees in which tabs the agent can act.
