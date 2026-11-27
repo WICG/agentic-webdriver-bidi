@@ -19,7 +19,7 @@ Related documents:
 - **User agent**: the browser.
 - **Agent**: the WebDriver BiDi client controlled by an AI system.
 - **Restricted session**: a WebDriver BiDi session with `sessionType: "restricted"`. The user agent allows only the operations in the ACL of the session.
-- **Access control list (ACL)**: a dictionary with `global` and `perNavigable` entries that defines the allowed commands and events for a restricted session.
+- **Access control list (ACL)**: a dictionary with `standalone` and `perNavigable` entries that defines the allowed commands and events for a restricted session.
 - **Actuation command**: a command that changes the state of a navigable or acts for the user, for example a click, a key press, or a navigation. See [actuation UI](actuation-ui.md).
 - **Actuated navigable**: a navigable whose `perNavigable` entry in the effective ACL contains at least one actuation command.
 
@@ -91,7 +91,7 @@ In this example, the user revokes access to navigable `A1B2C3`:
   "params": {
     "reason": "The user revoked access to the tab.",
     "acl": {
-      "global": {
+      "standalone": {
         "commands": [],
         "events": []
       },

@@ -19,7 +19,7 @@ The [ACL](acl.md) is the signal for this UI. A navigable is an actuated navigabl
 
 The actuation continues across navigations in the navigable, and across commands that are not actuation commands. To run an actuation command in that navigable, the user agent's origin rules must also allow the command on the target document origin. The agent can request access to more than one navigable at the same time. Each of these navigables is an actuated navigable.
 
-Actuation commands always target a navigable, so they are not valid in `global`. A navigable is an actuated navigable only while its `perNavigable` entry in the effective ACL contains at least one actuation command. Thus the user agent always knows which navigables the agent can actuate.
+Actuation commands always target a navigable, so they are not valid in `standalone`. A navigable is an actuated navigable only while its `perNavigable` entry in the effective ACL contains at least one actuation command. Thus the user agent always knows which navigables the agent can actuate.
 
 ## Actuation commands
 

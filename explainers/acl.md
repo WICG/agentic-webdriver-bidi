@@ -11,7 +11,7 @@ The user agent sends the [`session.changed`](restricted-sessions.md#sessionchang
 
 The ACL has two parts:
 
-- `global` defines commands and events that do not target any navigable, such as `browsingContext.create`. Commands and events that target a navigable are not valid in `global`.
+- `standalone` defines commands and events that do not target any navigable, such as `browsingContext.create`. Commands and events that target a navigable are not valid in `standalone`.
 - `perNavigable` lists the allowed top-level traversables (navigables) and the commands and events allowed in each navigable.
 
 Each part or entry contains two lists (see [#26](https://github.com/WICG/agentic-webdriver-bidi/issues/26) for full-access shortcuts):
@@ -23,7 +23,7 @@ The `commands` and `events` lists can contain only the commands and events in [C
 
 ```js
 {
-  global: {
+  standalone: {
     commands: [...commandName],
     events: [...eventName]
   },
@@ -57,7 +57,7 @@ When the agent sends a command or the user agent prepares an event, the user age
 
 1. **Always-available session operations.** If the operation is `session.status`, `session.end`, `session.subscribe`, `session.unsubscribe`, `session.setAcl`, or `session.changed`, allow it.
 2. **`browsingContext.getTree` without `root`.** Return only navigables `N` where `browsingContext.getTree` is in `acl.perNavigable[N].commands` and the user agent allows it for `N`'s document origin. To discover tabs outside `perNavigable` without extension APIs, the agent needs a dedicated tab-overview command and event or action feedback ([#5](https://github.com/WICG/agentic-webdriver-bidi/issues/5)).
-3. **Global operations.** If the command or event does not target any navigable (such as `browsingContext.create`), allow it only if `acl.global` contains it.
+3. **Standalone operations.** If the command or event does not target any navigable (such as `browsingContext.create`), allow it only if `acl.standalone` contains it.
 4. **Navigable and origin check.** For a command targeting navigable `N` with document origin `O`, or an event from `(N, O)`:
    - Let `T` be the top-level traversable of `N`.
    - Require the name in `acl.perNavigable[T]`.
@@ -84,7 +84,7 @@ Parameters:
 
 To process `session.setAcl`, the user agent:
 
-1. Rejects invalid entries (such as navigable commands in `global`, global-only commands in `perNavigable`, or entries that the user agent's origin rules disallow for a navigable's current document origin). The user agent allows an initial `about:blank` top-level traversable with an opaque origin (such as a tab from `browsingContext.create`) in `perNavigable`. The agent can then grant commands such as `browsingContext.navigate` before step 5 checks the destination origin.
+1. Rejects invalid entries (such as navigable commands in `standalone`, standalone commands in `perNavigable`, or entries that the user agent's origin rules disallow for a navigable's current document origin). The user agent allows an initial `about:blank` top-level traversable with an opaque origin (such as a tab from `browsingContext.create`) in `perNavigable`. The agent can then grant commands such as `browsingContext.navigate` before step 5 checks the destination origin.
 2. Requests user or user-agent approval for any new access in the diff between the current ACL and the requested `acl` (using `params.reason` if provided).
 3. Sets the session ACL to the granted entries plus any user-agent-default access, removes empty entries, and updates the [actuation UI](actuation-ui.md).
 4. Returns `{ acl }`. If any requested item was not granted, includes `denied: { acl, reason }` with the denied entries in ACL format and an optional `reason`.
@@ -103,7 +103,7 @@ Events can expose page data, for example console messages or URLs of navigations
 
 The [security model](security-model.md) requires restrictions by both top-level traversable and security origin:
 
-- `global` holds only commands and events that do not target any navigable (such as `browsingContext.create`). It never grants access to any navigable.
+- `standalone` holds only commands and events that do not target any navigable (such as `browsingContext.create`). It never grants access to any navigable.
 - `perNavigable` scopes access to specific tabs. It blocks access to other user tabs ([U1](use-cases.md#u1-the-agent-uses-only-the-access-that-the-task-needs), [U7](use-cases.md#u7-the-user-adds-a-specific-tab-to-the-agent-session)), lets the user revoke one tab without affecting another ([U3](use-cases.md#u3-the-user-revokes-access-during-the-task)), supports different access levels per tab ([U5](use-cases.md#u5-the-agent-reads-one-tab-and-acts-in-a-different-tab)), and signals which tabs need [actuation UI](actuation-ui.md).
 - The user agent enforces origin rules locally and communicates origin denials or revocations through `denied.reason` in `session.setAcl` or by updating `perNavigable` and sending `session.changed` with a `reason`.
 
@@ -122,7 +122,7 @@ Keeping origin rules in the user agent and reporting denials via `session.change
 
 ### Generic access control with allowlists and denylists
 
-A more general capability can contain allowlists and denylists for modules, commands, events, and parameters. This alternative has more flexibility, but it is more complex to specify and to show to a user. This proposal uses allowlists only, with `global` and `perNavigable` scopes and in-protocol access requests.
+A more general capability can contain allowlists and denylists for modules, commands, events, and parameters. This alternative has more flexibility, but it is more complex to specify and to show to a user. This proposal uses allowlists only, with `standalone` and `perNavigable` scopes and in-protocol access requests.
 
 ### ACL in `session.new`
 
