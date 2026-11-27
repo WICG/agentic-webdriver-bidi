@@ -7,7 +7,7 @@ User agents are encouraged to show dedicated UI while an agent actuates a naviga
 
 - Show that the agent controls the navigable.
 - Show other UI that helps the user follow the agent, for example click visualization.
-- Show a pause control that lets the user pause and resume the agent ([U2](use-cases.md#u2-the-user-interrupts-the-agent-and-changes-the-page)).
+- Show a control that lets the user revoke access to the navigable ([U2](use-cases.md#u2-the-user-interrupts-the-agent-and-changes-the-page), [U3](use-cases.md#u3-the-user-revokes-access-during-the-task); see [#35](https://github.com/WICG/agentic-webdriver-bidi/issues/35) for pause/resume).
 - Show a stop control that lets the user terminate the agent session immediately ([U6](use-cases.md#u6-the-user-terminates-the-agent-session-with-one-action)).
 
 ## ACL as the signal
@@ -40,7 +40,7 @@ An agent that only observes a navigable does not cause actuation UI. The user ag
 
 ## User controls and retraction
 
-When the user activates the pause control, the user agent pauses the session and sends [`session.changed`](restricted-sessions.md#sessionchanged) with `paused: true`. The user agent can also revoke access from the ACL. When the user activates the stop control, the user agent terminates the session immediately and revokes all access, including inflight requests whenever possible.
+When the user revokes access to a navigable, the user agent updates the ACL and sends [`session.changed`](restricted-sessions.md#sessionchanged) (see [#35](https://github.com/WICG/agentic-webdriver-bidi/issues/35) for pause/resume). When the user activates the stop control, the user agent terminates the session immediately and revokes all access, including inflight requests whenever possible.
 
 The agent must retract the actuation commands for a navigable when it completes the actuation. Otherwise the user agent continues to show the actuation UI. The protocol cannot enforce this. The user agent can revoke access at any time, for example after a period of inactivity (see [#34](https://github.com/WICG/agentic-webdriver-bidi/issues/34)), and send `session.changed`.
 
