@@ -36,9 +36,9 @@ The `commands` and `events` lists can contain only the commands and events in [C
 }
 ```
 
-Access control is a property of the session. A navigable without a `perNavigable` entry has no access beyond user-agent defaults. An empty entry has the same effect as no entry.
+Access control is a property of the session. A navigable without a `perNavigable` entry has no access beyond user-agent defaults and appears identical to a closed tab in `browsingContext.getTree`. An empty `perNavigable` entry (empty `commands` and `events` lists) also grants no access and is skipped by `browsingContext.getTree`, but indicates that the navigable remains part of the session (for example, when paused by the user in [U2](use-cases.md#u2-the-user-interrupts-the-agent-and-changes-the-page)).
 
-The ACL does not list origins. The user agent enforces origin restrictions locally according to the [security model](security-model.md) (see [#49](https://github.com/WICG/agentic-webdriver-bidi/issues/49) on site-level scoping and opaque origins).
+The ACL does not list origins. The user agent enforces origin restrictions locally according to the [security model](security-model.md) and updates the effective ACL whenever origin eligibility changes (see [#49](https://github.com/WICG/agentic-webdriver-bidi/issues/49) on site-level scoping and opaque origins).
 
 Event subscriptions are independent of the ACL `events` lists. The agent uses `session.subscribe` and `session.unsubscribe` as usual. The user agent filters out events that the effective ACL or origin rules do not allow before it emits them (see [#29](https://github.com/WICG/agentic-webdriver-bidi/issues/29) for subscriptions).
 
@@ -50,6 +50,7 @@ The ACL does not control these commands and events. They are always available in
 - `session.unsubscribe`
 - `session.setAcl`
 - `session.changed`
+- `browsingContext.getTree` without `root` (returned navigables are still filtered by `perNavigable` and origin rules)
 
 ## Checking if the ACL allows a command or event
 
@@ -62,7 +63,7 @@ When the agent sends a command or the user agent prepares an event, the user age
    - Let `T` be the top-level traversable of `N`.
    - Require the name in `acl.perNavigable[T]`.
    - Require the user agent's origin rules to allow the operation on `O` (this also covers cross-origin iframes; see [#36](https://github.com/WICG/agentic-webdriver-bidi/issues/36) and [#50](https://github.com/WICG/agentic-webdriver-bidi/issues/50)). An initial `about:blank` top-level traversable with an opaque origin (such as a tab from `browsingContext.create`) passes this check. Step 5 still checks any navigation target origin.
-5. **Navigation target check.** For a navigation or redirect to target origin `T`, require the user agent's origin rules to allow `T`. Otherwise block the navigation or redirect before sending the request.
+5. **Navigation target check.** For a navigation or redirect to target origin `T`, require the user agent's origin rules to allow `T` (the user agent may pause and ask the user for confirmation; see [U4.2](use-cases.md#u42-the-task-needs-access-to-a-new-site-in-the-same-tab) and [#8](https://github.com/WICG/agentic-webdriver-bidi/issues/8)). Otherwise block the navigation or redirect before sending the request.
 6. **Subresources.** Subresource origins loaded by an allowed top-level document do not need separate origin approval, provided the session cannot run agent-authored script that sends requests to disallowed origins (see [#45](https://github.com/WICG/agentic-webdriver-bidi/issues/45)).
 
 ### Origin changes on a controlled navigable
@@ -87,7 +88,8 @@ To process `session.setAcl`, the user agent:
 1. Rejects invalid entries (such as navigable commands in `global`, global-only commands in `perNavigable`, or entries that the user agent's origin rules disallow for a navigable's current document origin). The user agent allows an initial `about:blank` top-level traversable with an opaque origin (such as a tab from `browsingContext.create`) in `perNavigable`. The agent can then grant commands such as `browsingContext.navigate` before step 5 checks the destination origin.
 2. Requests user or user-agent approval for any new access in the diff between the current ACL and the requested `acl` (using `params.reason` if provided).
 3. Sets the session ACL to the granted entries plus any user-agent-default access, removes empty entries, and updates the [actuation UI](actuation-ui.md).
-4. Returns `{ acl }`. If any requested item was not granted, includes `denied: { acl, reason }` with the denied entries in ACL format and an optional `reason`.
+4. Adds empty `perNavigable` entries for navigables that remain part of the session with no granted access (for example, when paused by the user in [U2](use-cases.md#u2-the-user-interrupts-the-agent-and-changes-the-page)).
+5. Returns `{ acl }`. If any requested item was not granted, includes `denied: { acl, reason }` with the denied entries in ACL format and an optional `reason`.
 
 Agents must request access only when necessary and retract it after use, especially for actuation commands that control the [actuation UI](actuation-ui.md).
 

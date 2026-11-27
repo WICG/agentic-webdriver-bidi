@@ -23,7 +23,7 @@ Commands and events that observe navigables:
 
 | Name | Type | Status | Description |
 | :--- | :--- | :--- | :--- |
-| `browsingContext.getTree` | Command | Existing | Returns the tree of navigables that `perNavigable` and the user agent's origin rules allow. Omits disallowed navigables and origins. |
+| `browsingContext.getTree` | Command | Existing | Always available without `root`. Returns the tree of navigables that `perNavigable` and the user agent's origin rules allow. Omits disallowed navigables and origins. |
 | `browsingContext.captureScreenshot` | Command | Existing | Returns a screenshot of a navigable. The user agent redacts cross-origin content that its origin rules disallow. |
 | `browsingContext.locateNodes` | Command | Existing, extended | Finds DOM elements by locator. The extension adds a locator for an `x`, `y` position and return sharedIds. |
 | `log.entryAdded` | Event | Existing | Contains a console message or uncaught JavaScript error from a navigable, if allowed by the user agent. |
