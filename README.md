@@ -30,18 +30,10 @@ AI agents also need browser automation. Many agents use low-level protocols or t
 
 We propose extensions to WebDriver BiDi for agentic use cases that include agentic browsing. A WebDriver BiDi session represents one long-running agentic activity in the browser. Access control is a property of that session. The user agent enforces the access control. The user keeps supervision and control of the agent.
 
-A client starts a restricted session with `sessionType: "restricted"` in `session.new`. A restricted session starts with no access beyond any user-agent defaults. The agent requests access and learns the effective ACL with `session.setAcl`.
-
-An access control list (ACL) defines the access of a restricted session. The ACL contains three types of entries:
-
-- **Origins**: the origins that the agent can access.
-- **Commands**: the WebDriver BiDi commands that the agent can send.
-- **Events**: the WebDriver BiDi events that the agent can receive.
-
-The ACL also tells the user agent which navigables the agent actuates. A navigable is actuated while its per-navigable ACL entry contains an actuation command, for example a click or a navigation. The user agent can show actuation UI for that navigable, and the user can stop the agent.
+The sub-explainers describe the design: [restricted sessions](explainers/restricted-sessions.md), [access control lists](explainers/acl.md), [commands and events](explainers/commands-and-events.md), and [actuation UI](explainers/actuation-ui.md).
 
 > [!NOTE]
-> This proposal is in incubation. All names and data shapes in this document are illustrative and can change (see [#13](https://github.com/WICG/agentic-webdriver-bidi/issues/13) on terminology). The goal is to move the final features into the WebDriver BiDi specification.
+> This proposal is in incubation. All names and data shapes in documents in this repo are illustrative and can change. The goal is to move the final features into the WebDriver BiDi specification.
 
 ## Goals
 
