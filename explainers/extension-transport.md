@@ -116,7 +116,6 @@ browser.action.onClicked.addListener(async (tab) => {
       acl: {
         perNavigable: {
           [navigableId]: {
-            origins: [new URL(tab.url).origin],
             commands: ["browsingContext.captureScreenshot"],
             events: []
           }

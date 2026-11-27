@@ -56,13 +56,13 @@ The ACL does not control these commands and events. They are always available in
 When the agent sends a command or the user agent prepares an event, the user agent checks the session ACL and its origin rules (see [#30](https://github.com/WICG/agentic-webdriver-bidi/issues/30) for error codes and [#8](https://github.com/WICG/agentic-webdriver-bidi/issues/8) for pausing instead of aborting):
 
 1. **Always-available session operations.** If the operation is `session.status`, `session.end`, `session.subscribe`, `session.unsubscribe`, `session.setAcl`, or `session.changed`, allow it.
-2. **Pause check.** If the session is paused (`paused: true`) and the operation is a command, deny it ([U2](use-cases.md#u2-the-user-interrupts-the-agent-and-changes-the-page), [U9](use-cases.md#u9-the-user-completes-part-of-a-task-manually-instead-of-granting-access)).
-3. **Global operations.** If the command or event does not target any navigable (such as `browsingContext.create`), allow it only if `acl.global` contains it.
-4. **`browsingContext.getTree` without `root`.** Return only navigables `N` where `browsingContext.getTree` is in `acl.perNavigable[N].commands` and allowed by the user agent for `N`'s document origin.
+2. **Pause check.** If the session is paused (`paused: true`) and the operation is a command, deny it ([U2](use-cases.md#u2-the-user-interrupts-the-agent-and-changes-the-page), [U9](use-cases.md#u9-the-user-completes-part-of-a-task-manually-instead-of-granting-access); see [#35](https://github.com/WICG/agentic-webdriver-bidi/issues/35) for event suppression while paused).
+3. **`browsingContext.getTree` without `root`.** Return only navigables `N` where `browsingContext.getTree` is in `acl.perNavigable[N].commands` and the user agent allows it for `N`'s document origin. To discover tabs outside `perNavigable` without extension APIs, the agent needs a dedicated tab-overview command and event or action feedback ([#5](https://github.com/WICG/agentic-webdriver-bidi/issues/5)).
+4. **Global operations.** If the command or event does not target any navigable (such as `browsingContext.create`), allow it only if `acl.global` contains it.
 5. **Navigable and origin check.** For a command targeting navigable `N` with document origin `O`, or an event from `(N, O)`:
    - Let `T` be the top-level traversable of `N`.
    - Require the name in `acl.perNavigable[T]`.
-   - Require the user agent's origin rules to allow the operation on `O` (this also covers cross-origin iframes; see [#36](https://github.com/WICG/agentic-webdriver-bidi/issues/36) and [#50](https://github.com/WICG/agentic-webdriver-bidi/issues/50)).
+   - Require the user agent's origin rules to allow the operation on `O` (this also covers cross-origin iframes; see [#36](https://github.com/WICG/agentic-webdriver-bidi/issues/36) and [#50](https://github.com/WICG/agentic-webdriver-bidi/issues/50)). An initial `about:blank` top-level traversable with an opaque origin (such as a tab from `browsingContext.create`) passes this check. Step 6 still checks any navigation target origin.
 6. **Navigation target check.** For a navigation or redirect to target origin `T`, require the user agent's origin rules to allow `T`. Otherwise block the navigation or redirect before sending the request.
 7. **Subresources.** Subresource origins loaded by an allowed top-level document do not need separate origin approval, provided the session cannot run agent-authored script that sends requests to disallowed origins (see [#45](https://github.com/WICG/agentic-webdriver-bidi/issues/45)).
 
@@ -85,7 +85,7 @@ Parameters:
 
 To process `session.setAcl`, the user agent:
 
-1. Rejects invalid entries (such as navigable commands in `global`, global-only commands in `perNavigable`, or entries disallowed by the user agent's origin rules for a navigable's current document origin).
+1. Rejects invalid entries (such as navigable commands in `global`, global-only commands in `perNavigable`, or entries that the user agent's origin rules disallow for a navigable's current document origin). The user agent allows an initial `about:blank` top-level traversable with an opaque origin (such as a tab from `browsingContext.create`) in `perNavigable`. The agent can then grant commands such as `browsingContext.navigate` before step 6 checks the destination origin.
 2. Requests user or user-agent approval for any new access in the diff between the current ACL and the requested `acl` (using `params.reason` if provided).
 3. Sets the session ACL to the granted entries plus any user-agent-default access, removes empty entries, and updates the [actuation UI](actuation-ui.md).
 4. Returns `{ acl }`. If any requested item was not granted, includes `denied: { acl, reason }` with the denied entries in ACL format and an optional `reason`.
@@ -114,7 +114,12 @@ Keeping origin allowlists and blocklists in the user agent avoids duplicating or
 
 ### Per-origin entries in the ACL
 
-An earlier version included a `perOrigin` map alongside `perNavigable` (or an `origins` list inside each entry). That design added cross-map resolution rules, inheritance and narrowing semantics, and edge cases when a controlled tab temporarily navigated to an unlisted origin. Leaving origin validation to the user agent and reporting origin denials via `session.changed` (with `reason`) and `denied.reason` keeps the protocol simple while still enforcing the security model.
+Earlier designs placed origins in the ACL in two ways:
+
+- **A `perOrigin` map alongside `perNavigable` (or an `origins` list inside each entry):** This design added cross-map resolution rules, inheritance and narrowing semantics, and edge cases on temporary navigations to unlisted origins.
+- **Origin maps nested under each navigable (`perNavigable[navigableId][origin]`):** This design avoids cross-map ambiguity and lets an agent request a destination origin with a `reason` before navigation. It also ties the protocol to origin-or-site syntax ([#49](https://github.com/WICG/agentic-webdriver-bidi/issues/49)) and repeats command lists across `(navigable, origin)` pairs.
+
+Keeping origin rules in the user agent and reporting denials via `session.changed` (with `reason`) and `denied.reason` keeps the protocol simple and enforces the security model.
 
 ### Generic access control with allowlists and denylists
 

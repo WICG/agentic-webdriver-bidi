@@ -36,7 +36,7 @@ The actuation commands include:
 
 `script.callFunction` and `script.evaluate` are actuation commands because script can click elements and change the page. See [#33](https://github.com/WICG/agentic-webdriver-bidi/issues/33) for read-only script evaluation.
 
-An agent that only observes a navigable does not cause actuation UI. For example, a `perNavigable` entry with only `browsingContext.captureScreenshot` does not make the navigable an actuated navigable (see [U5](use-cases.md#u5-the-agent-reads-one-tab-and-acts-in-a-different-tab)).
+An agent that only observes a navigable does not cause actuation UI. The user agent may show separate observation UI. For example, a `perNavigable` entry with only `browsingContext.captureScreenshot` does not make the navigable an actuated navigable (see [U5](use-cases.md#u5-the-agent-reads-one-tab-and-acts-in-a-different-tab)).
 
 ## User controls and retraction
 
