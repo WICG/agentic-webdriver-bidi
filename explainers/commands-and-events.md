@@ -17,7 +17,7 @@ Session commands and events:
 | `session.subscribe` | Command | Existing | Subscribes to any events. The user agent emits only events allowed by the ACL. |
 | `session.unsubscribe` | Command | Existing | Unsubscribes from events. |
 | [`session.setAcl`](acl.md#sessionsetacl) | Command | New | Requests or retracts access. The parameters are `acl` and an optional `reason`. The result contains the granted and denied access. |
-| [`session.changed`](restricted-sessions.md#sessionchanged) | Event | New | Tells the agent that the user or the user agent paused, resumed, or reconfigured the session. The fields include `acl` and `paused`. |
+| [`session.changed`](restricted-sessions.md#sessionchanged) | Event | New | Tells the agent that the user or the user agent changed the session access. The fields include `acl` and an optional `reason` explaining the change (for example, the user took over control, the page navigated to a disallowed origin, or the user granted access to another navigable). |
 
 Commands and events that observe navigables:
 
